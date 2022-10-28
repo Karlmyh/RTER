@@ -1,1 +1,1 @@
-from .tree import DensityTree__all__ = ["DensityTree"]
+from .tree import RegressionTree__all__ = ["RegressionTree"]

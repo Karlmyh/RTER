@@ -83,7 +83,9 @@ class TreeStruct(object):
         y_predict_hat = np.zeros(X.shape[0])
         for leaf_id in self.leaf_ids:
             idx = node_affi == leaf_id
+            
             y_predict_hat[idx] = self.leafnode_fun[leaf_id].predict(X[idx])
+            
         return y_predict_hat  
 
 class RecursiveTreeBuilder(object):
@@ -96,19 +98,19 @@ class RecursiveTreeBuilder(object):
         self.min_samples_split = min_samples_split
         self.max_depth = max_depth
         self.order=order
-    def build(self, tree, X, X_range=None):
+    def build(self, tree, X, Y, X_range=None):
         num_samples = X.shape[0]
         stack = []
         # prepare for stack [X, node_range, parent_status, left_node_status, depth]
-        stack.append([X, X_range, _TREE_UNDEFINED, _TREE_UNDEFINED, 0])
+        stack.append([X, Y,X_range, _TREE_UNDEFINED, _TREE_UNDEFINED, 0])
         while len(stack) != 0:
-            dt_X, node_range, parent, is_left, depth = stack.pop()
+            dt_X, dt_Y, node_range, parent, is_left, depth = stack.pop()
             n_node_samples = dt_X.shape[0]
             # judge whether dt should be splitted or not
             if n_node_samples == 0:
                 is_leaf = True
             else:
-                n_node_unique_samples = np.unique(dt_X, axis=0).shape[0]
+                n_node_unique_samples = np.unique(np.hstack([dt_X,dt_Y.reshape(-1,1)]), axis=0).shape[0]
                 if depth >= self.max_depth and n_node_unique_samples <= self.min_samples_split:
                     is_leaf = True
                 else:
@@ -119,7 +121,7 @@ class RecursiveTreeBuilder(object):
                 node_id = tree._add_node(parent, is_left, is_leaf, rd_dim, rd_split, n_node_samples, node_range)
             else:
                 node_id = tree._add_node(parent, is_left, is_leaf, None, None, n_node_samples, node_range)
-                tree.leafnode_fun[node_id] = self.Estimator(node_range, num_samples,dt_X,self.order)
+                tree.leafnode_fun[node_id] = self.Estimator(node_range, num_samples,dt_X, dt_Y,self.order)
                 tree.leafnode_fun[node_id].fit()
             # begin branching if the node is not leaf
             if not is_leaf:
@@ -134,11 +136,13 @@ class RecursiveTreeBuilder(object):
                 # push right child on stack
                 right_idx = dt_X[:,rd_dim] >= rd_split
                 dt_X_right = dt_X[right_idx]
-                stack.append([dt_X_right, node_range_right, node_id, False, depth+1])
+                dt_Y_right = dt_Y[right_idx]
+                stack.append([dt_X_right, dt_Y_right , node_range_right, node_id, False, depth+1])
                 # Push left child on stack
                 left_idx = ~right_idx
                 dt_X_left = dt_X[left_idx]
-                stack.append([dt_X_left, node_range_left, node_id, True, depth+1])
+                dt_Y_right= dt_Y[left_idx]
+                stack.append([dt_X_left, dt_Y_right, node_range_left, node_id, True, depth+1])
         tree._node_info_to_ndarray()
         
         
