@@ -1,11 +1,11 @@
 import numpy as np
 
 from ._tree import TreeStruct, RecursiveTreeBuilder
-from ._splitter import PurelyRandomSplitter
+from ._splitter import PurelyRandomSplitter,MidPointRandomSplitter
 from ._estimator import NaiveEstimator,ExtrapolationEstimator
 
 
-SPLITTERS = {"purely": PurelyRandomSplitter}
+SPLITTERS = {"purely": PurelyRandomSplitter,"midpoint":MidPointRandomSplitter}
 ESTIMATORS = {"naive_estimator": NaiveEstimator,"extrapolation_estimator":ExtrapolationEstimator}
 
 class BaseRecursiveTree(object):
@@ -46,8 +46,8 @@ class RegressionTree(BaseRecursiveTree):
     def fit(self, X,Y, X_range=None):
         if X_range is None:
             X_range = np.zeros(shape=(2, X.shape[1]))
-            X_range[0] = X.min(axis=0)
-            X_range[1] = X.max(axis=0)
+            X_range[0] = X.min(axis=0)-0.01*(X.max(axis=0)-X.min(axis=0))
+            X_range[1] = X.max(axis=0)+0.01*(X.max(axis=0)-X.min(axis=0))
         super(RegressionTree, self).fit(X,Y, X_range)
         self.X_range = X_range
     def predict(self, X):

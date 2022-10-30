@@ -110,8 +110,12 @@ class RecursiveTreeBuilder(object):
             if n_node_samples == 0:
                 is_leaf = True
             else:
+                #print(np.hstack([dt_X,dt_Y.reshape(-1,1)]))
+                #print("haha")
+                #print(np.unique(np.hstack([dt_X,dt_Y.reshape(-1,1)]), axis=0).shape[0])
+                #print("huhu")
                 n_node_unique_samples = np.unique(np.hstack([dt_X,dt_Y.reshape(-1,1)]), axis=0).shape[0]
-                if depth >= self.max_depth and n_node_unique_samples <= self.min_samples_split:
+                if depth >= self.max_depth or n_node_unique_samples <= self.min_samples_split:
                     is_leaf = True
                 else:
                     is_leaf = False
