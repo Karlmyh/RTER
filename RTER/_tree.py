@@ -89,7 +89,13 @@ class TreeStruct(object):
         return y_predict_hat  
 
 class RecursiveTreeBuilder(object):
-    def __init__(self, splitter, Estimator, min_samples_split, max_depth,order):
+    def __init__(self, splitter, 
+                 Estimator, 
+                 min_samples_split, 
+                 max_depth,order,
+                 polynomial_output,
+                 truncate_ratio_low,
+                 truncate_ratio_up):
         # about splitter
         self.splitter = splitter
         # about estimator
@@ -98,6 +104,9 @@ class RecursiveTreeBuilder(object):
         self.min_samples_split = min_samples_split
         self.max_depth = max_depth
         self.order=order
+        self.polynomial_output=polynomial_output
+        self.truncate_ratio_low=truncate_ratio_low
+        self.truncate_ratio_up=truncate_ratio_up                                                    
     def build(self, tree, X, Y, X_range=None):
         num_samples = X.shape[0]
         stack = []
@@ -125,7 +134,16 @@ class RecursiveTreeBuilder(object):
                 node_id = tree._add_node(parent, is_left, is_leaf, rd_dim, rd_split, n_node_samples, node_range)
             else:
                 node_id = tree._add_node(parent, is_left, is_leaf, None, None, n_node_samples, node_range)
-                tree.leafnode_fun[node_id] = self.Estimator(node_range, num_samples,dt_X, dt_Y,self.order)
+                
+                tree.leafnode_fun[node_id] = self.Estimator(node_range, 
+                                                            num_samples,
+                                                            dt_X, 
+                                                            dt_Y,
+                                                            self.order,
+                                                            self.polynomial_output,
+                                                            self.truncate_ratio_low,
+                                                            self.truncate_ratio_up)
+        
                 tree.leafnode_fun[node_id].fit()
             # begin branching if the node is not leaf
             if not is_leaf:

@@ -2,14 +2,24 @@ import numpy as np
 
 from ._tree import TreeStruct, RecursiveTreeBuilder
 from ._splitter import PurelyRandomSplitter,MidPointRandomSplitter
-from ._estimator import NaiveEstimator,ExtrapolationEstimator
+from ._estimator import NaiveEstimator,ExtrapolationEstimator,PointwiseNaiveExtrapolationEstimator,PointwiseExtrapolationEstimator
 
 
 SPLITTERS = {"purely": PurelyRandomSplitter,"midpoint":MidPointRandomSplitter}
-ESTIMATORS = {"naive_estimator": NaiveEstimator,"extrapolation_estimator":ExtrapolationEstimator}
+ESTIMATORS = {"naive_estimator": NaiveEstimator,"extrapolation_estimator":ExtrapolationEstimator,"pointwise_naive_extrapolation_estimator":PointwiseNaiveExtrapolationEstimator,"pointwise_extrapolation_estimator":PointwiseExtrapolationEstimator}
 
 class BaseRecursiveTree(object):
-    def __init__(self, splitter="purely", estimator=None, min_samples_split=2, max_depth=None, order=None, log_Xrange=None, random_state=None):
+    def __init__(self, 
+                 splitter="purely", 
+                 estimator=None, 
+                 min_samples_split=2, 
+                 max_depth=None, 
+                 order=None, 
+                 log_Xrange=None, 
+                 random_state=None,
+                 polynomial_output=0,
+                 truncate_ratio_low=0.55,
+                 truncate_ratio_up=0.2):
         self.splitter = splitter
         self.estimator = estimator
         self.min_samples_split = min_samples_split
@@ -18,6 +28,10 @@ class BaseRecursiveTree(object):
     
         self.log_Xrange = log_Xrange
         self.random_state = random_state
+        self.polynomial_output=polynomial_output
+        self.truncate_ratio_low=truncate_ratio_low
+        
+        self.truncate_ratio_up=truncate_ratio_up
     def fit(self, X, Y,X_range=None):
         self.n_samples, self.n_features = X.shape
         # checking parameters and preparation
@@ -32,7 +46,14 @@ class BaseRecursiveTree(object):
         splitter = SPLITTERS[self.splitter](self.random_state)
         Estimator = ESTIMATORS[self.estimator]
         self.tree_ = TreeStruct(self.n_samples, self.n_features, self.log_Xrange)
-        builder = RecursiveTreeBuilder(splitter, Estimator, self.min_samples_split, max_depth, order)
+        builder = RecursiveTreeBuilder(splitter, 
+                                       Estimator, 
+                                       self.min_samples_split, 
+                                       max_depth, 
+                                       order,
+                                       self.polynomial_output,
+                                       self.truncate_ratio_low,
+                                       self.truncate_ratio_up)
         builder.build(self.tree_, X, Y,X_range)
     def apply(self, X):
         return self.tree_.apply(X)
@@ -41,8 +62,8 @@ class BaseRecursiveTree(object):
 
 
 class RegressionTree(BaseRecursiveTree):
-    def __init__(self, splitter="purely", estimator="naive_estimator", min_samples_split=2, max_depth=None, order=None, log_Xrange=True, random_state=None):
-        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state)
+    def __init__(self, splitter="purely", estimator="naive_estimator", min_samples_split=2, max_depth=None, order=None, log_Xrange=True, random_state=None,polynomial_output=None, truncate_ratio_low=None , truncate_ratio_up=None):
+        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up)
     def fit(self, X,Y, X_range=None):
         if X_range is None:
             X_range = np.zeros(shape=(2, X.shape[1]))
@@ -59,3 +80,18 @@ class RegressionTree(BaseRecursiveTree):
         # assign 0 to points outside the boundary
         y_hat[np.logical_not(is_inboundary)] = 0
         return y_hat
+    
+    
+    def get_node_information(self,node_idx):
+        querying_object=list(self.tree_.leafnode_fun.values())[node_idx]
+        return_vec=(self.tree_.node_range[node_idx],
+                    querying_object.dt_X,
+                    querying_object.dt_Y,
+                    querying_object.sorted_ratio,
+                    querying_object.sorted_prediction,
+                    querying_object.intercept)
+        return return_vec
+    
+    
+    ## node x range dt_X,dt_Y, sorted_ratio sorted_y sorted_prediction intercept
+        
