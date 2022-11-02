@@ -23,7 +23,7 @@ class NaiveEstimator(object):
         else:
             self.y_hat= self.dt_Y.mean()
         
-    def predict(self, test_X):
+    def predict(self, test_X,numba_acc=0):
         y_predict = np.full(test_X.shape[0],self.y_hat, dtype=self.dtype)
         return y_predict
     
@@ -86,8 +86,8 @@ class ExtrapolationEstimator(object):
         
         #print(self.dt_X)
         
-        ratio_mat=[[r**(2*i+2) for i in range(self.order)] for r in self.sorted_ratio][-int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):-int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
-        pre_vec=[ self.sorted_y[:(i+1)].mean()  for i in range(self.sorted_y.shape[0])][-int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):-int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
+        ratio_mat=[[r**(2*i+2) for i in range(self.order)] for r in self.sorted_ratio][int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
+        pre_vec=[ self.sorted_y[:(i+1)].mean()  for i in range(self.sorted_y.shape[0])][int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
         
       
         
@@ -119,7 +119,7 @@ class ExtrapolationEstimator(object):
         
     
         
-    def predict(self, test_X):
+    def predict(self, test_X,numba_acc=0):
         
         if len(test_X)==0:
             return np.array([])
@@ -154,9 +154,7 @@ class ExtrapolationEstimator(object):
         
         return y_predict
     
-
-@njit
-def extrapolation(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up):
+def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up):
 
     ratio_vec=np.array([])
     for idx_X, X in enumerate(dt_X):
@@ -181,15 +179,65 @@ def extrapolation(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncat
     sorted_ratio = ratio_vec[idx_sorted_by_ratio]
     sorted_y = dt_Y[idx_sorted_by_ratio]
 
-    ratio_mat=np.array([[r**(2*i) for i in range(order+1)] for r in sorted_ratio][-int(sorted_ratio.shape[0]*truncate_ratio_low):-int(sorted_ratio.shape[0]*truncate_ratio_up)])
-    pre_vec=np.array([ sorted_y[:(i+1)].mean()  for i in range(sorted_y.shape[0])][-int(sorted_ratio.shape[0]*truncate_ratio_low):-int(sorted_ratio.shape[0]*truncate_ratio_up)]).reshape(-1,1)
-    
-    
-    beta= np.linalg.inv(ratio_mat.T @ ratio_mat) @ ratio_mat.T @ pre_vec
+    ratio_mat=np.array([[r**(2*i) for i in range(order+1)] for r in sorted_ratio][int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)])
+    pre_vec=np.array([ sorted_y[:(i+1)].mean()  for i in range(sorted_y.shape[0])][int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)]).reshape(-1,1)
     
     
 
-    return beta[0].item()
+    
+
+    return (np.linalg.inv(ratio_mat.T @ ratio_mat) @ ratio_mat.T @ pre_vec)[0].item()
+
+@njit
+def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up):
+
+    ratio_vec=np.array([])
+    for idx_X, X in enumerate(dt_X):
+        
+        centralized=X-X_extra
+        
+        for d in range(X_extra.shape[0]):
+            positive_len=X_range[1,d]-X_extra[d]
+            negative_len=X_extra[d]-X_range[0,d]
+            
+            if centralized[d]>=0:
+                centralized[d]/=positive_len
+            else:
+                centralized[d]/=negative_len
+        
+        ratio_X= np.abs(centralized).max()
+        ratio_vec=np.append(ratio_vec,ratio_X)
+
+    
+
+    idx_sorted_by_ratio=np.argsort(ratio_vec)      
+    sorted_ratio = ratio_vec[idx_sorted_by_ratio]
+    sorted_y = dt_Y[idx_sorted_by_ratio]
+    
+    
+    
+    ratio_mat=np.zeros((sorted_ratio.shape[0], order+1))
+    
+    n_test= sorted_ratio.shape[0]
+    
+    for i in range(n_test):
+        r= sorted_ratio[i]
+        for j in range(order +1):
+            ratio_mat[i,j]= r**(2*j) 
+            
+    ratio_mat_used=ratio_mat[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)]
+    
+   
+    pre_vec=np.zeros((sorted_y.shape[0],1))
+    for i in range(sorted_y.shape[0]):
+        pre_vec[i,0]= np.mean(sorted_y[:(i+1)])
+    
+    pre_vec_used=pre_vec[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)]
+    
+
+    return (np.linalg.inv(ratio_mat_used.T @ ratio_mat_used) @ ratio_mat_used.T @ pre_vec_used )[0,0]
+    
+    
     
 
 class PointwiseExtrapolationEstimator(object):
@@ -222,67 +270,7 @@ class PointwiseExtrapolationEstimator(object):
         self.truncate_ratio_low=truncate_ratio_low
         self.truncate_ratio_up=truncate_ratio_up
         
-    
-    def similar_ratio(self,instance,X_extra,X_range):
   
-
-        return self.unit_square_similar_ratio(self.piecewise_linear_transform(instance,X_extra,X_range))
-    
-    
-    ## TODO : wrap up as numba
-    @staticmethod  
-    def unit_square_similar_ratio(instance):
-        return np.abs(instance-np.zeros(instance.shape[0])).max()
-    @staticmethod  
-    def piecewise_linear_transform(instance, X_extra, X_range):
-        
-        centralized=instance-X_extra
-        
-        for d in range(instance.shape[0]):
-            
-            positive_len=X_range[1,d]-X_extra[d]
-            negative_len=X_extra[d]-X_range[0,d]
-            
-            if centralized[d]>=0:
-                centralized[d]/=positive_len
-            else:
-                centralized[d]/=negative_len
-        
-        return centralized
-    
-
-    def similar_ratio_vec(self, X, X_extra):
-        return [self.similar_ratio(X[i],X_extra,self.X_range) for i in range(X.shape[0])]
-    
-
-    def extrapolation(self,X_extra):
-        
-        
-            
-        ratio_vec=self.similar_ratio_vec(self.dt_X, X_extra)
-        
-        idx_sorted_by_ratio=np.argsort(ratio_vec)      
-        sorted_ratio = np.array(ratio_vec)[idx_sorted_by_ratio]
-        sorted_y = self.dt_Y[idx_sorted_by_ratio]
-            
-        
-   
-        
-        ratio_mat=[[r**(2*i+2) for i in range(self.order)] for r in sorted_ratio][-int(sorted_ratio.shape[0]*self.truncate_ratio_low):-int(sorted_ratio.shape[0]*self.truncate_ratio_up)]
-        pre_vec=[ sorted_y[:(i+1)].mean()  for i in range(sorted_y.shape[0])][-int(sorted_ratio.shape[0]*self.truncate_ratio_low):-int(sorted_ratio.shape[0]*self.truncate_ratio_up)]
-    
-        
-          
-        linear_model=LinearRegression()
-        linear_model.fit(np.array(ratio_mat),np.array(pre_vec).reshape(-1,1))
-        
-        
-        self.intercept=linear_model.intercept_.item()
-        
-        return self.intercept
-    
-    
-
         
         
     
@@ -308,11 +296,13 @@ class PointwiseExtrapolationEstimator(object):
             pre_vec=[]
             for X in test_X:
                 if numba_acc:
-                    pre_vec.append(extrapolation(self.dt_X,self.dt_Y, 
+                    pre_vec.append(extrapolation_jit(self.dt_X,self.dt_Y, 
                                                       X, self.X_range, self.order,
                                                       self.truncate_ratio_low,self.truncate_ratio_up))
                 else:
-                    pre_vec.append(self.extrapolation(X))
+                    pre_vec.append(extrapolation_nonjit(self.dt_X,self.dt_Y, 
+                                                      X, self.X_range, self.order,
+                                                      self.truncate_ratio_low,self.truncate_ratio_up))
             
             y_predict=np.array(pre_vec)
         else:

@@ -1,11 +1,11 @@
 import numpy as np
-
+from multiprocessing import Pool
 
 _TREE_LEAF = -1
 _TREE_UNDEFINED = -2
 
 class TreeStruct(object):
-    def __init__(self, n_samples, n_features, log_Xrange=True, numba_acc=0):
+    def __init__(self, n_samples, n_features, log_Xrange=True):
         # Base tree statistic
         self.n_samples = n_samples
         self.n_features = n_features
@@ -20,7 +20,7 @@ class TreeStruct(object):
         self.leafnode_fun = {}  
         # If log_Xrange is True, the range of each node is also logged.  
         self.log_Xrange = log_Xrange
-        self.numba_acc=numba_acc
+       
         if log_Xrange == True:
             self.node_range = []
     def _node_append(self):
@@ -79,15 +79,36 @@ class TreeStruct(object):
                     node_id = self.right_child[node_id]
             result_nodeid[i] = node_id
         return  result_nodeid  
-    def predict(self, X):
+    
+    def predict(self, X, numba_acc=0):
         node_affi = self.apply(X)
         y_predict_hat = np.zeros(X.shape[0])
         for leaf_id in self.leaf_ids:
             idx = node_affi == leaf_id
             
-            y_predict_hat[idx] = self.leafnode_fun[leaf_id].predict(X[idx], numba_acc=self.numba_acc)
+            y_predict_hat[idx] = self.leafnode_fun[leaf_id].predict(X[idx], numba_acc=numba_acc)
             
-        return y_predict_hat  
+        return y_predict_hat
+    
+    def predict_parallel(self, X, numba_acc=0,njobs=0):
+        node_affi = self.apply(X)
+        y_predict_hat = np.zeros(X.shape[0])
+        
+        
+       
+        with Pool(njobs) as p:
+            result= p.map(f,[ (leaf_id, self.leafnode_fun[leaf_id], X[node_affi == leaf_id],numba_acc) for leaf_id in self.leaf_ids] )
+
+        for return_vec in result:
+            idx = node_affi == return_vec[0]
+            y_predict_hat[idx]= return_vec[1]
+            
+        return y_predict_hat
+    
+    
+def f(input_tuple):
+    idx, node_object, X, numba_acc =input_tuple
+    return idx, node_object.predict(X, numba_acc=numba_acc)
 
 class RecursiveTreeBuilder(object):
     def __init__(self, splitter, 

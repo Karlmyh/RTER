@@ -20,7 +20,8 @@ class BaseRecursiveTree(object):
                  polynomial_output=0,
                  truncate_ratio_low=0.55,
                  truncate_ratio_up=0.2,
-                 numba_acc=0):
+                 numba_acc=0,
+                 parallel=0):
         self.splitter = splitter
         self.estimator = estimator
         self.min_samples_split = min_samples_split
@@ -33,6 +34,8 @@ class BaseRecursiveTree(object):
         self.truncate_ratio_low=truncate_ratio_low
         
         self.truncate_ratio_up=truncate_ratio_up
+        self.numba_acc=numba_acc
+        self.parallel=parallel
              
     def fit(self, X, Y,X_range=None):
         self.n_samples, self.n_features = X.shape
@@ -59,13 +62,16 @@ class BaseRecursiveTree(object):
         builder.build(self.tree_, X, Y,X_range)
     def apply(self, X):
         return self.tree_.apply(X)
-    def predict(self, X,numba_acc):
-        return self.tree_.predict(X, numba_acc)
+    def predict(self, X):
+        if self.parallel:
+            return self.tree_.predict_parallel(X, self.numba_acc,njobs=self.parallel)
+        else:
+            return self.tree_.predict(X, self.numba_acc)
 
 
 class RegressionTree(BaseRecursiveTree):
-    def __init__(self, splitter="purely", estimator="naive_estimator", min_samples_split=2, max_depth=None, order=None, log_Xrange=True, random_state=None,polynomial_output=None, truncate_ratio_low=None , truncate_ratio_up=None,numba_acc=0):
-        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up)
+    def __init__(self, splitter="purely", estimator="naive_estimator", min_samples_split=2, max_depth=None, order=None, log_Xrange=True, random_state=None,polynomial_output=None, truncate_ratio_low=None , truncate_ratio_up=None,numba_acc=0,parallel_jobs=0):
+        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up,numba_acc=numba_acc,parallel=parallel_jobs)
     def fit(self, X,Y, X_range=None):
         if X_range is None:
             X_range = np.zeros(shape=(2, X.shape[1]))
@@ -73,8 +79,8 @@ class RegressionTree(BaseRecursiveTree):
             X_range[1] = X.max(axis=0)+0.01*(X.max(axis=0)-X.min(axis=0))
         super(RegressionTree, self).fit(X,Y, X_range)
         self.X_range = X_range
-    def predict(self, X, numba_acc=0):
-        y_hat = super(RegressionTree, self).predict(X,numba_acc)
+    def predict(self, X):
+        y_hat = super(RegressionTree, self).predict(X)
         # check boundary
         check_lowerbound = (X - self.X_range[0] >= 0).all(axis=1)
         check_upperbound = (X - self.X_range[1] <= 0).all(axis=1)
