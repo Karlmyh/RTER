@@ -2,11 +2,11 @@ import numpy as np
 
 from ._tree import TreeStruct, RecursiveTreeBuilder
 from ._splitter import PurelyRandomSplitter,MidPointRandomSplitter
-from ._estimator import NaiveEstimator,ExtrapolationEstimator,PointwiseNaiveExtrapolationEstimator,PointwiseExtrapolationEstimator
+from ._estimator import NaiveEstimator,ExtrapolationEstimator,PointwiseExtrapolationEstimator
 
 
 SPLITTERS = {"purely": PurelyRandomSplitter,"midpoint":MidPointRandomSplitter}
-ESTIMATORS = {"naive_estimator": NaiveEstimator,"extrapolation_estimator":ExtrapolationEstimator,"pointwise_naive_extrapolation_estimator":PointwiseNaiveExtrapolationEstimator,"pointwise_extrapolation_estimator":PointwiseExtrapolationEstimator}
+ESTIMATORS = {"naive_estimator": NaiveEstimator,"extrapolation_estimator":ExtrapolationEstimator,"pointwise_extrapolation_estimator":PointwiseExtrapolationEstimator}
 
 class BaseRecursiveTree(object):
     def __init__(self, 
