@@ -222,7 +222,68 @@ class PointwiseExtrapolationEstimator(object):
         self.truncate_ratio_low=truncate_ratio_low
         self.truncate_ratio_up=truncate_ratio_up
         
- 
+    
+    def similar_ratio(self,instance,X_extra,X_range):
+  
+
+        return self.unit_square_similar_ratio(self.piecewise_linear_transform(instance,X_extra,X_range))
+    
+    
+    ## TODO : wrap up as numba
+    @staticmethod  
+    def unit_square_similar_ratio(instance):
+        return np.abs(instance-np.zeros(instance.shape[0])).max()
+    @staticmethod  
+    def piecewise_linear_transform(instance, X_extra, X_range):
+        
+        centralized=instance-X_extra
+        
+        for d in range(instance.shape[0]):
+            
+            positive_len=X_range[1,d]-X_extra[d]
+            negative_len=X_extra[d]-X_range[0,d]
+            
+            if centralized[d]>=0:
+                centralized[d]/=positive_len
+            else:
+                centralized[d]/=negative_len
+        
+        return centralized
+    
+
+    def similar_ratio_vec(self, X, X_extra):
+        return [self.similar_ratio(X[i],X_extra,self.X_range) for i in range(X.shape[0])]
+    
+
+    def extrapolation(self,X_extra):
+        
+        
+            
+        ratio_vec=self.similar_ratio_vec(self.dt_X, X_extra)
+        
+        idx_sorted_by_ratio=np.argsort(ratio_vec)      
+        sorted_ratio = np.array(ratio_vec)[idx_sorted_by_ratio]
+        sorted_y = self.dt_Y[idx_sorted_by_ratio]
+            
+        
+   
+        
+        ratio_mat=[[r**(2*i+2) for i in range(self.order)] for r in sorted_ratio][-int(sorted_ratio.shape[0]*self.truncate_ratio_low):-int(sorted_ratio.shape[0]*self.truncate_ratio_up)]
+        pre_vec=[ sorted_y[:(i+1)].mean()  for i in range(sorted_y.shape[0])][-int(sorted_ratio.shape[0]*self.truncate_ratio_low):-int(sorted_ratio.shape[0]*self.truncate_ratio_up)]
+    
+        
+          
+        linear_model=LinearRegression()
+        linear_model.fit(np.array(ratio_mat),np.array(pre_vec).reshape(-1,1))
+        
+        
+        self.intercept=linear_model.intercept_.item()
+        
+        return self.intercept
+    
+    
+
+        
         
     
     def fit(self):
@@ -238,7 +299,7 @@ class PointwiseExtrapolationEstimator(object):
         
     
         
-    def predict(self, test_X):
+    def predict(self, test_X,numba_acc=0):
         
         if len(test_X)==0:
             return np.array([])
@@ -246,9 +307,12 @@ class PointwiseExtrapolationEstimator(object):
         if self.y_hat is None:
             pre_vec=[]
             for X in test_X:
-                pre_vec.append(extrapolation(self.dt_X,self.dt_Y, 
-                                                  X, self.X_range, self.order,
-                                                  self.truncate_ratio_low,self.truncate_ratio_up))
+                if numba_acc:
+                    pre_vec.append(extrapolation(self.dt_X,self.dt_Y, 
+                                                      X, self.X_range, self.order,
+                                                      self.truncate_ratio_low,self.truncate_ratio_up))
+                else:
+                    pre_vec.append(self.extrapolation(X))
             
             y_predict=np.array(pre_vec)
         else:
