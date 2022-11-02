@@ -5,7 +5,7 @@ _TREE_LEAF = -1
 _TREE_UNDEFINED = -2
 
 class TreeStruct(object):
-    def __init__(self, n_samples, n_features, log_Xrange=True):
+    def __init__(self, n_samples, n_features, log_Xrange=True, numba_acc=0):
         # Base tree statistic
         self.n_samples = n_samples
         self.n_features = n_features
@@ -20,6 +20,7 @@ class TreeStruct(object):
         self.leafnode_fun = {}  
         # If log_Xrange is True, the range of each node is also logged.  
         self.log_Xrange = log_Xrange
+        self.numba_acc=numba_acc
         if log_Xrange == True:
             self.node_range = []
     def _node_append(self):
@@ -84,7 +85,7 @@ class TreeStruct(object):
         for leaf_id in self.leaf_ids:
             idx = node_affi == leaf_id
             
-            y_predict_hat[idx] = self.leafnode_fun[leaf_id].predict(X[idx])
+            y_predict_hat[idx] = self.leafnode_fun[leaf_id].predict(X[idx], numba_acc=self.numba_acc)
             
         return y_predict_hat  
 
