@@ -37,8 +37,13 @@ def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,
 
 @njit
 def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up):
-
-    ratio_vec=np.array([])
+    
+    
+    n_pts= dt_X.shape[0]
+    
+    
+    ratio_vec=np.zeros(n_pts)
+    
     for idx_X, X in enumerate(dt_X):
         
         centralized=X-X_extra
@@ -53,9 +58,9 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,tru
                 centralized[d]/=negative_len
         
         ratio_X= np.abs(centralized).max()
-        ratio_vec=np.append(ratio_vec,ratio_X)
+        ratio_vec[idx_X]=ratio_X
         
-    np.argsort(ratio_vec) 
+
 
     idx_sorted_by_ratio = np.argsort(ratio_vec)      
     sorted_ratio = ratio_vec[idx_sorted_by_ratio]
@@ -64,16 +69,16 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,tru
     
     
     ratio_mat=np.zeros((sorted_ratio.shape[0], order+1))
-    
-    n_test= sorted_ratio.shape[0]
-    
+
  
     i=0
-    while(i<n_test):
+    while(i<n_pts):
         r= sorted_ratio[i]
-        i+=1
+        
         for j in range(order +1):
             ratio_mat[i,j]= r**(2*j) 
+            
+        i+=1
             
     ratio_mat_used=ratio_mat[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)]
     
