@@ -6,12 +6,9 @@ Created on Thu Oct 28 09:17:14 2021
 @author: mayuheng
 """
 
-#__all__ = ['MultivariateNormalDistribution','MixedDistribution','Distribution','UniformDistribution','ExponentialDistribution','BetaDistribution','LaplaceDistribution','UniformCircleDistribution']
 
 
 import numpy as np
-from scipy.stats import uniform
-from scipy.stats import norm
 from scipy.stats import multivariate_normal
 from scipy.stats import beta
 from scipy.stats import laplace
@@ -26,8 +23,8 @@ class Distribution(object):
         pass
     def generate(self, num_samples):
         sample_X = self.sampling(num_samples) 
-        pdf_true = self.density(sample_X) 
-        return sample_X, pdf_true
+    
+        return sample_X
     def sampling(self, num_samples): 
         pass
     def density(self, sample_X): 
