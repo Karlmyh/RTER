@@ -207,10 +207,10 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,tru
         
         ratio_X= np.abs(centralized).max()
         ratio_vec=np.append(ratio_vec,ratio_X)
+        
+    np.argsort(ratio_vec) 
 
-    
-
-    idx_sorted_by_ratio=np.argsort(ratio_vec)      
+    idx_sorted_by_ratio = np.argsort(ratio_vec)      
     sorted_ratio = ratio_vec[idx_sorted_by_ratio]
     sorted_y = dt_Y[idx_sorted_by_ratio]
     
@@ -220,8 +220,11 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,tru
     
     n_test= sorted_ratio.shape[0]
     
-    for i in range(n_test):
+ 
+    i=0
+    while(i<n_test):
         r= sorted_ratio[i]
+        i+=1
         for j in range(order +1):
             ratio_mat[i,j]= r**(2*j) 
             
@@ -229,8 +232,8 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,tru
     
    
     pre_vec=np.zeros((sorted_y.shape[0],1))
-    for i in range(sorted_y.shape[0]):
-        pre_vec[i,0]= np.mean(sorted_y[:(i+1)])
+    for k in range(sorted_y.shape[0]):
+        pre_vec[k,0]= np.mean(sorted_y[:(k+1)])
     
     pre_vec_used=pre_vec[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)]
     
