@@ -18,9 +18,25 @@ repeat_time=5
 
 log_file_dir = "./results/efficiency/"
 
+###### pre computation to trigger compilation #############################
+###### do not count into results ##########################################
+sample_generator=TestDistribution(1).returnDistribution()
+X_train, Y_train = sample_generator.generate(50)
+X_test, Y_test = sample_generator.generate_true(50)
+RTER_model=RegressionTree(estimator="pointwise_extrapolation_estimator",
+                 splitter="midpoint",
+                 min_samples_split=30,
+                 max_depth=3,
+                 random_state=iterate,
+                 truncate_ratio_low=0.3,
+                 truncate_ratio_up=0.7)
+RTER_model.fit(X_train,Y_train)
+Y_hat=RTER_model.predict(X_test)
+##########################################################################
+##########################################################################
 
 for distribution_iter,distribution_index in enumerate(distribution_index_vec):
-    for n_train in [1000, 2000, 5000, 10000]:
+    for n_train in [1000, 2000, 5000, 10000, 20000, 30000, 40000, 60000]:
         for n_test in [1000,2000,5000]:
 
             for iterate in range(repeat_time):
@@ -34,6 +50,9 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
                 sample_generator=TestDistribution(distribution_index).returnDistribution()
                 X_train, Y_train = sample_generator.generate(n_train)
                 X_test, Y_test = sample_generator.generate_true(n_test)
+                
+                
+              
 
 
                 # RTER

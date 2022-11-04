@@ -169,5 +169,5 @@ class RegressionTree(BaseRecursiveTree):
     
     def score(self, X, y):
         
-        return -sssssMSE(self.predict(X),y)
+        return -MSE(self.predict(X),y)
 
