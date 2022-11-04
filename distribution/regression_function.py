@@ -12,7 +12,7 @@ class RegressionFunction(object):
             
         except:
             raise ValueError("f should receive {}*n dimensional numpy ndarray".format(self.dim))
-      
+
         assert type(y) in [float, int, np.float64, np.float32, 
                            np.float16, np.int64, np.int32, np.int16, np.int8]
             

@@ -10,7 +10,7 @@ ESTIMATORS = {"naive_estimator": NaiveEstimator,"extrapolation_estimator":Extrap
 
 class BaseRecursiveTree(object):
     def __init__(self, 
-                 splitter="purely", 
+                 splitter="midpoint", 
                  estimator=None, 
                  min_samples_split=2, 
                  max_depth=None, 
@@ -20,7 +20,7 @@ class BaseRecursiveTree(object):
                  polynomial_output=0,
                  truncate_ratio_low=0.2,
                  truncate_ratio_up=0.55,
-                 numba_acc=0,
+                 numba_acc=1,
                  parallel_jobs="auto"):
         self.splitter = splitter
         self.estimator = estimator

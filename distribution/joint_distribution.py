@@ -14,7 +14,14 @@ class JointDistribution(object):
         X = self.marginal_obj.generate(n)
         Y_true = self.regression_obj.apply(X)
         
-        return Y_true+ self.noise_obj.generate(n)
+        return X, Y_true+ self.noise_obj.generate(n)
+    
+    def generate_true(self, n):
+        
+        X = self.marginal_obj.generate(n)
+        Y_true = self.regression_obj.apply(X)
+        
+        return X, Y_true
         
         
         
