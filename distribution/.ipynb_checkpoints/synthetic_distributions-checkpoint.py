@@ -29,10 +29,10 @@ def f_2(x):
     return np.sin(np.pi*x[0]*x[1]) + 20* (x[2]-0.5)**2 + 10*x[3] + 5 *x[4]
 
 def f_3(x):
-    return np.sqrt(x[0]**2 + (x[1]*x[2]-1/x[1]/x[4])**2)
+    return np.sqrt(x[0]**2 + (x[1]*x[2]-1/x[1]/x[3])**2)
 
 def f_4(x):
-    np.arctan(1/x[0]/(x[1]*x[2]-1/x[1]/x[3]))
+    return np.arctan(1/x[0]/(x[1]*x[2]-1/x[1]/x[3]))
 
 class TestDistribution(object):
     def __init__(self,index,dim="auto"):
@@ -83,9 +83,9 @@ class TestDistribution(object):
     
     def returnDistribution(self):
         switch = {'1': self.testDistribution_1,                
-                  '2': self.testDistribution_1,   
-                  '3': self.testDistribution_1,   
-                  '4': self.testDistribution_1,   
+                  '2': self.testDistribution_2,   
+                  '3': self.testDistribution_3,   
+                  '4': self.testDistribution_4,   
           }
 
         choice = str(self.index)  

@@ -195,10 +195,7 @@ class PointwiseExtrapolationEstimator(object):
         if self.n_node_samples==0:
             self.y_hat = 0
         else:
-            if self.order==0:
-                self.y_hat = self.dt_Y.mean()
-            else:
-                self.y_hat=None
+            self.y_hat=None
         
     
         

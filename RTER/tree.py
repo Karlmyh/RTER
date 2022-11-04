@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.metrics import mean_squared_error as MSE
 
 from ._tree import TreeStruct, RecursiveTreeBuilder
 from ._splitter import PurelyRandomSplitter,MidPointRandomSplitter
@@ -17,11 +18,11 @@ class BaseRecursiveTree(object):
                  order=None, 
                  log_Xrange=None, 
                  random_state=None,
-                 polynomial_output=0,
-                 truncate_ratio_low=0.2,
-                 truncate_ratio_up=0.55,
-                 numba_acc=1,
-                 parallel_jobs="auto"):
+                 polynomial_output=None,
+                 truncate_ratio_low=None,
+                 truncate_ratio_up=None,
+                 numba_acc=None,
+                 parallel_jobs=None):
         self.splitter = splitter
         self.estimator = estimator
         self.min_samples_split = min_samples_split
@@ -65,13 +66,14 @@ class BaseRecursiveTree(object):
         return self.tree_.apply(X)
     def predict(self, X):
         if self.parallel_jobs != 0:
+            #print("we are using parallel computing!")
             return self.tree_.predict_parallel(X, self.numba_acc,parallel_jobs=self.parallel_jobs)
         else:
             return self.tree_.predict(X, self.numba_acc)
 
 
 class RegressionTree(BaseRecursiveTree):
-    def __init__(self, splitter="purely", estimator="naive_estimator", min_samples_split=2, max_depth=None, order=None, log_Xrange=True, random_state=None,polynomial_output=None, truncate_ratio_low=None , truncate_ratio_up=None,numba_acc=0,parallel_jobs="auto"):
+    def __init__(self, splitter="midpoint", estimator="pointwise_extrapolation_estimator", min_samples_split=2, max_depth=None, order=1, log_Xrange=True, random_state=None,polynomial_output=0, truncate_ratio_low=0.2 , truncate_ratio_up=0.55,numba_acc=1,parallel_jobs=0):
         super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up,numba_acc=numba_acc,parallel_jobs=parallel_jobs)
     def fit(self, X,Y, X_range=None):
         if X_range is None:
@@ -91,6 +93,9 @@ class RegressionTree(BaseRecursiveTree):
         return y_hat
     
     
+    
+    
+    
     def get_node_information(self,node_idx):
         if self.estimator == "extrapolation_estimator":
             querying_object=list(self.tree_.leafnode_fun.values())[node_idx]
@@ -108,5 +113,61 @@ class RegressionTree(BaseRecursiveTree):
         return return_vec
     
     
-    ## node x range dt_X,dt_Y, sorted_ratio sorted_y sorted_prediction intercept
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Parameters
+        ----------
+        deep : boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
+        """
+        out = dict()
+        for key in ['min_samples_split',"max_depth","order","truncate_ratio_low","truncate_ratio_up"]:
+            value = getattr(self, key, None)
+            if deep and hasattr(value, 'get_params'):
+                deep_items = value.get_params().items()
+                out.update((key + '__' + k, val) for k, val in deep_items)
+            out[key] = value
+        return out
+    
+    
+    def set_params(self, **params):
+        """Set the parameters of this estimator.
+
+        The method works on simple estimators as well as on nested objects
+        (such as pipelines). The latter have parameters of the form
+        ``<component>__<parameter>`` so that it's possible to update each
+        component of a nested object.
+
+        Returns
+        -------
+        self
+        """
+        if not params:
+            # Simple optimization to gain speed (inspect is slow)
+            return self
+        valid_params = self.get_params(deep=True)
+
+
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError('Invalid parameter %s for estimator %s. '
+                                 'Check the list of available parameters '
+                                 'with `estimator.get_params().keys()`.' %
+                                 (key, self))
+            setattr(self, key, value)
+            valid_params[key] = value
+
+        return self
+    
+    
+    def score(self, X, y):
         
+        return -sssssMSE(self.predict(X),y)
+

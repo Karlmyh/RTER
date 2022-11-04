@@ -11,7 +11,7 @@ class RegressionFunction(object):
             y=self.functional(x)
             
         except:
-            raise ValueError("f should receive {}*n dimensional numpy ndarray".format(self.dim))
+            raise ValueError("f should receive {} dimensional numpy ndarray".format(self.dim))
 
         assert type(y) in [float, int, np.float64, np.float32, 
                            np.float16, np.int64, np.int32, np.int16, np.int8]
@@ -21,7 +21,7 @@ class RegressionFunction(object):
     def apply(self, X):
         
         
-        return np.array([self.functional(data) for data in X]).reshape(-1,1)
+        return np.array([self.functional(data) for data in X])
     
 
         

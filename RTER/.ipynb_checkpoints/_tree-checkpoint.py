@@ -96,6 +96,7 @@ class TreeStruct(object):
         
         if parallel_jobs == "auto":
             njobs = len(self.leaf_ids)
+            #print("using {} threads".format(njobs))
         else:
             njobs = parallel_jobs
         with Pool(njobs) as p:

@@ -7,6 +7,6 @@ class GaussianNoise(object):
         
     def generate(self, n):
         
-        return np.random.normal(scale = self.sigma, size =  n).reshape(n, 1)
+        return np.random.normal(scale = self.sigma, size =  n)
         
 
