@@ -20,21 +20,62 @@ import numpy as np
 import math
 
 
+def f_1(x):
+    return np.sin(16*x)
 
+def f_2(x):
+    return np.sin(np.pi*x[0]*x[1]) + 20* (x[2]-0.5)**2 + 10*x[3] + 5 *x[4]
+
+def f_3(x):
+    return np.sqrt(x[0]**2 + (x[1]*x[2]-1/x[1]/x[4])**2)
+
+def f_4(x):
+    np.arctan(1/x[0]/(x[1]*x[2]-1/x[1]/x[3]))
 
 class TestDistribution(object):
     def __init__(self,index,dim):
         self.dim=dim
         self.index=index
         
-    def testDistribution_1(self,dim):
-        return MultivariateNormalDistribution(mean=np.zeros(dim),cov=np.diag(np.ones(dim)))
+    def testDistribution_1(self):
+        assert self.dim == 1
+        marginal_obj = UniformDistribution(0,1)
+        regression_obj = RegressionFunction(f_1, self.dim)
+        noise_obj = GaussianNoise(1)
+        
+        return JointDistribution(marginal_obj, regression_obj, noise_obj)
+    
+    def testDistribution_2(self):
+        assert self.dim == 10
+        marginal_obj = UniformDistribution(np.zeros(self.dim),np.ones(self.dim))
+        regression_obj = RegressionFunction(f_2, self.dim)
+        noise_obj = GaussianNoise(1)
+        
+        return JointDistribution(marginal_obj, regression_obj, noise_obj)
+    
+    def testDistribution_3(self):
+        assert self.dim == 4
+        marginal_obj = UniformDistribution(np.array([0,40*np.pi,0,1]), np.array([100,560*np.pi,1,11]))
+        regression_obj = RegressionFunction(f_3, self.dim)
+        noise_obj = GaussianNoise(1)
+        
+        return JointDistribution(marginal_obj, regression_obj, noise_obj)
+    
+    def testDistribution_4(self):
+        assert self.dim == 4
+        marginal_obj = UniformDistribution(np.array([0,40*np.pi,0,1]), np.array([100,560*np.pi,1,11]))
+        regression_obj = RegressionFunction(f_4, self.dim)
+        noise_obj = GaussianNoise(1)
+        
+        return JointDistribution(marginal_obj, regression_obj, noise_obj)
     
    
     
     def returnDistribution(self):
         switch = {'1': self.testDistribution_1,                
-          
+                  '2': self.testDistribution_1,   
+                  '3': self.testDistribution_1,   
+                  '4': self.testDistribution_1,   
           }
 
         choice = str(self.index)  
