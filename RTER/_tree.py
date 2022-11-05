@@ -160,6 +160,7 @@ class RecursiveTreeBuilder(object):
             else:
                 node_id = tree._add_node(parent, is_left, is_leaf, None, None, n_node_samples, node_range)
                 
+                #print([(x<=node_range[1]).all() for x in dt_X])
                 tree.leafnode_fun[node_id] = self.Estimator(node_range, 
                                                             num_samples,
                                                             dt_X, 
@@ -184,12 +185,18 @@ class RecursiveTreeBuilder(object):
                 right_idx = dt_X[:,rd_dim] >= rd_split
                 dt_X_right = dt_X[right_idx]
                 dt_Y_right = dt_Y[right_idx]
+                
+                
+                
                 stack.append([dt_X_right, dt_Y_right , node_range_right, node_id, False, depth+1])
                 # Push left child on stack
                 left_idx = ~right_idx
                 dt_X_left = dt_X[left_idx]
-                dt_Y_right= dt_Y[left_idx]
-                stack.append([dt_X_left, dt_Y_right, node_range_left, node_id, True, depth+1])
+                dt_Y_left= dt_Y[left_idx]
+                stack.append([dt_X_left, dt_Y_left, node_range_left, node_id, True, depth+1])
+                
+                #print([(x>=node_range_left[0]).all() for x in dt_X[left_idx]])
+                
         tree._node_info_to_ndarray()
         
         

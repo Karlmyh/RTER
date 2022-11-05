@@ -79,6 +79,16 @@ class TestDistribution(object):
         
         return JointDistribution(marginal_obj, regression_obj, noise_obj)
     
+    def testDistribution_5(self):
+        if self.dim == "auto":
+            self.dim = 4
+        assert self.dim == 4
+        marginal_obj = UniformDistribution(np.array([0,40*np.pi,0,1]), np.array([100,560*np.pi,1,11]))
+        regression_obj = RegressionFunction(f_4, self.dim)
+        noise_obj = GaussianNoise(1)
+        
+        return JointDistribution(marginal_obj, regression_obj, noise_obj)
+    
    
     
     def returnDistribution(self):

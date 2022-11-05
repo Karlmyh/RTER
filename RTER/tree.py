@@ -1,12 +1,14 @@
 import numpy as np
 from sklearn.metrics import mean_squared_error as MSE
+from sklearn.preprocessing import MinMaxScaler
 
 from ._tree import TreeStruct, RecursiveTreeBuilder
-from ._splitter import PurelyRandomSplitter,MidPointRandomSplitter
+from ._splitter import PurelyRandomSplitter,MidPointRandomSplitter, MaxEdgeRandomSplitter
 from ._estimator import NaiveEstimator,ExtrapolationEstimator,PointwiseExtrapolationEstimator
+from ._utils import extrapolation_jit_return_info
 
 
-SPLITTERS = {"purely": PurelyRandomSplitter,"midpoint":MidPointRandomSplitter}
+SPLITTERS = {"purely": PurelyRandomSplitter,"midpoint":MidPointRandomSplitter, "maxedge":MaxEdgeRandomSplitter}
 ESTIMATORS = {"naive_estimator": NaiveEstimator,"extrapolation_estimator":ExtrapolationEstimator,"pointwise_extrapolation_estimator":PointwiseExtrapolationEstimator}
 
 class BaseRecursiveTree(object):
@@ -73,30 +75,43 @@ class BaseRecursiveTree(object):
 
 
 class RegressionTree(BaseRecursiveTree):
-    def __init__(self, splitter="midpoint", estimator="pointwise_extrapolation_estimator", min_samples_split=2, max_depth=None, order=1, log_Xrange=True, random_state=None,polynomial_output=0, truncate_ratio_low=0.2 , truncate_ratio_up=0.55,numba_acc=1,parallel_jobs=0):
+    def __init__(self, splitter="maxedge", estimator="pointwise_extrapolation_estimator", min_samples_split=2, max_depth=None, order=1, log_Xrange=True, random_state=None,polynomial_output=0, truncate_ratio_low=0.2 , truncate_ratio_up=0.55,numba_acc=1,parallel_jobs=0):
         super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up,numba_acc=numba_acc,parallel_jobs=parallel_jobs)
     def fit(self, X,Y, X_range=None):
         if X_range is None:
             X_range = np.zeros(shape=(2, X.shape[1]))
             X_range[0] = X.min(axis=0)-0.01*(X.max(axis=0)-X.min(axis=0))
             X_range[1] = X.max(axis=0)+0.01*(X.max(axis=0)-X.min(axis=0))
-        super(RegressionTree, self).fit(X,Y, X_range)
-        self.X_range = X_range
+        
+        self.X_range_original = X_range
+        self.X_range = np.array([np.zeros(X.shape[1]),np.ones(X.shape[1])])
+        
+        scaled_X = (X -self.X_range[0])/(self.X_range[1]-self.X_range[0])
+          
+        print(scaled_X)
+        
+        super(RegressionTree, self).fit(scaled_X,Y,self.X_range)
+        
     def predict(self, X):
-        y_hat = super(RegressionTree, self).predict(X)
+        scaled_X = (X -self.X_range_original[0])/(self.X_range_original[1]-self.X_range_original[0])
+        y_hat = super(RegressionTree, self).predict(scaled_X)
+        
+        print(y_hat)
+        print(scaled_X)
         # check boundary
-        check_lowerbound = (X - self.X_range[0] >= 0).all(axis=1)
-        check_upperbound = (X - self.X_range[1] <= 0).all(axis=1)
+        check_lowerbound = (scaled_X - 1 >= 0).all(axis=1)
+        check_upperbound = (scaled_X - 0 <= 0).all(axis=1)
         is_inboundary = check_lowerbound * check_upperbound
         # assign 0 to points outside the boundary
         y_hat[np.logical_not(is_inboundary)] = 0
+        
         return y_hat
     
     
     
     
     
-    def get_node_information(self,node_idx):
+    def get_node_information(self,node_idx,pt_idx):
         if self.estimator == "extrapolation_estimator":
             querying_object=list(self.tree_.leafnode_fun.values())[node_idx]
             return_vec=(self.tree_.node_range[node_idx],
@@ -107,9 +122,18 @@ class RegressionTree(BaseRecursiveTree):
                         querying_object.intercept)
         else:
             querying_object=list(self.tree_.leafnode_fun.values())[node_idx]
-            return_vec=(self.tree_.node_range[node_idx],
+            X_extra=querying_object.dt_X[pt_idx]
+            sorted_ratio, sorted_prediction, intercept=extrapolation_jit_return_info(querying_object.dt_X,
+                                                                                     querying_object.dt_Y,
+                                                                                     X_extra, querying_object.X_range,
+                                                                                     self.order,self.truncate_ratio_low,
+                                                                                     self.truncate_ratio_up)
+            return_vec=(querying_object.X_range,
                         querying_object.dt_X,
-                        querying_object.dt_Y)
+                        querying_object.dt_Y,
+                        sorted_ratio,
+                        sorted_prediction,
+                        intercept)
         return return_vec
     
     
