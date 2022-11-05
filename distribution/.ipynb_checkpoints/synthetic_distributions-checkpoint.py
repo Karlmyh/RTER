@@ -34,6 +34,9 @@ def f_3(x):
 def f_4(x):
     return np.arctan(1/x[0]/(x[1]*x[2]-1/x[1]/x[3]))
 
+def f_5(x):
+    return np.sum(x**2)
+
 class TestDistribution(object):
     def __init__(self,index,dim="auto"):
         self.dim=dim
@@ -46,6 +49,7 @@ class TestDistribution(object):
         marginal_obj = UniformDistribution(0,1)
         regression_obj = RegressionFunction(f_1, self.dim)
         noise_obj = GaussianNoise(1)
+        
         
         return JointDistribution(marginal_obj, regression_obj, noise_obj)
     
@@ -67,7 +71,9 @@ class TestDistribution(object):
         regression_obj = RegressionFunction(f_3, self.dim)
         noise_obj = GaussianNoise(1)
         
-        return JointDistribution(marginal_obj, regression_obj, noise_obj)
+        X_range = np.array([np.array([0,40*np.pi,0,1]), np.array([100,560*np.pi,1,11])])
+        
+        return JointDistribution(marginal_obj, regression_obj, noise_obj, X_range)
     
     def testDistribution_4(self):
         if self.dim == "auto":
@@ -77,25 +83,29 @@ class TestDistribution(object):
         regression_obj = RegressionFunction(f_4, self.dim)
         noise_obj = GaussianNoise(1)
         
-        return JointDistribution(marginal_obj, regression_obj, noise_obj)
+        X_range = np.array([np.array([0,40*np.pi,0,1]), np.array([100,560*np.pi,1,11])])
+        
+        return JointDistribution(marginal_obj, regression_obj, noise_obj, X_range)
     
     def testDistribution_5(self):
         if self.dim == "auto":
             self.dim = 4
-        assert self.dim == 4
-        marginal_obj = UniformDistribution(np.array([0,40*np.pi,0,1]), np.array([100,560*np.pi,1,11]))
-        regression_obj = RegressionFunction(f_4, self.dim)
+        
+        marginal_obj = UniformDistribution(np.zeros(self.dim),np.ones(self.dim))
+        regression_obj = RegressionFunction(f_5, self.dim)
         noise_obj = GaussianNoise(1)
         
+     
         return JointDistribution(marginal_obj, regression_obj, noise_obj)
-    
+
    
     
     def returnDistribution(self):
         switch = {'1': self.testDistribution_1,                
                   '2': self.testDistribution_2,   
                   '3': self.testDistribution_3,   
-                  '4': self.testDistribution_4,   
+                  '4': self.testDistribution_4, 
+                  '5': self.testDistribution_5, 
           }
 
         choice = str(self.index)  

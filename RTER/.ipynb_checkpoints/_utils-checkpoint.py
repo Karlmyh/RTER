@@ -53,8 +53,10 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,tru
             negative_len=X_extra[d]-X_range[0,d]
             
             if centralized[d]>=0:
+                
                 centralized[d]/=positive_len
             else:
+                
                 centralized[d]/=negative_len
         
         ratio_X= np.abs(centralized).max()
