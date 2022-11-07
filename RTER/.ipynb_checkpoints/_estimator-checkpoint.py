@@ -11,11 +11,15 @@ class NaiveEstimator(object):
                  dt_Y, 
                  order=None,
                  polynomial_output=0,
-                 truncate_ratio_low=0.55,
-                 truncate_ratio_up=0.2):
+                 truncate_ratio_low=0,
+                 truncate_ratio_up=1,
+                 r_range_up=1,
+                 r_range_low=0):
         self.dt_Y=dt_Y
         self.dtype = np.float64
         self.n_node_samples=dt_X.shape[0]
+        self.X_range = X_range
+
         
     def fit(self):
         if self.n_node_samples != 0:
@@ -37,7 +41,9 @@ class ExtrapolationEstimator(object):
                  order,
                  polynomial_output,
                  truncate_ratio_low,
-                 truncate_ratio_up):
+                 truncate_ratio_up,
+                 r_range_up=1,
+                 r_range_low=0):
         self.X_range = X_range
 
         self.X_central = X_range.mean(axis=0)
@@ -57,7 +63,8 @@ class ExtrapolationEstimator(object):
    
         self.truncate_ratio_low=truncate_ratio_low
         self.truncate_ratio_up=truncate_ratio_up
-        
+        self.r_range_up=r_range_up
+        self.r_range_low = r_range_low
     
         
     def similar_ratio(self,instance,X_central,X_edge_ratio):
@@ -89,7 +96,11 @@ class ExtrapolationEstimator(object):
         ratio_mat=[[r**(2*i+2) for i in range(self.order)] for r in self.sorted_ratio][int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
         pre_vec=[ self.sorted_y[:(i+1)].mean()  for i in range(self.sorted_y.shape[0])][int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
         
-      
+        ratio_range_idx_up = ratio_mat[:,0]**0.5< self.r_range_up
+        ratio_range_idx_low  = ratio_mat[:,0]**0.5> self.r_range_low
+        ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
+        ratio_mat=ratio_mat[ratio_range_idx]
+        pre_vec=pre_vec[ratio_range_idx]
         
         linear_model=LinearRegression()
         linear_model.fit(np.array(ratio_mat),np.array(pre_vec).reshape(-1,1))
@@ -164,7 +175,9 @@ class PointwiseExtrapolationEstimator(object):
                  order,
                  polynomial_output,
                  truncate_ratio_low,
-                 truncate_ratio_up):
+                 truncate_ratio_up,
+                 r_range_up=1,
+                 r_range_low=0):
         self.X_range = X_range
 
       
@@ -184,7 +197,8 @@ class PointwiseExtrapolationEstimator(object):
    
         self.truncate_ratio_low=truncate_ratio_low
         self.truncate_ratio_up=truncate_ratio_up
-        
+        self.r_range_up=r_range_up
+        self.r_range_low = r_range_low
   
         
         
@@ -210,11 +224,11 @@ class PointwiseExtrapolationEstimator(object):
                 if numba_acc:
                     pre_vec.append(extrapolation_jit(self.dt_X,self.dt_Y, 
                                                       X, self.X_range, self.order,
-                                                      self.truncate_ratio_low,self.truncate_ratio_up))
+                                                      self.truncate_ratio_low,self.truncate_ratio_up,self.r_range_low,self.r_range_up))
                 else:
                     pre_vec.append(extrapolation_nonjit(self.dt_X,self.dt_Y, 
                                                       X, self.X_range, self.order,
-                                                      self.truncate_ratio_low,self.truncate_ratio_up))
+                                                      self.truncate_ratio_low,self.truncate_ratio_up,self.r_range_low,self.r_range_up))
             
             y_predict=np.array(pre_vec)
         else:

@@ -24,7 +24,9 @@ class BaseRecursiveTree(object):
                  truncate_ratio_low=None,
                  truncate_ratio_up=None,
                  numba_acc=None,
-                 parallel_jobs=None):
+                 parallel_jobs=None,
+                 r_range_up=None,
+                r_range_low=None):
         self.splitter = splitter
         self.estimator = estimator
         self.min_samples_split = min_samples_split
@@ -40,6 +42,8 @@ class BaseRecursiveTree(object):
         self.numba_acc=numba_acc
         
         self.parallel_jobs = parallel_jobs
+        self.r_range_up =r_range_up
+        self.r_range_low =r_range_low
              
     def fit(self, X, Y,X_range=None):
         self.n_samples, self.n_features = X.shape
@@ -62,7 +66,9 @@ class BaseRecursiveTree(object):
                                        order,
                                        self.polynomial_output,
                                        self.truncate_ratio_low,
-                                       self.truncate_ratio_up)
+                                       self.truncate_ratio_up,
+                                      self.r_range_up,
+                                      self.r_range_low)
         builder.build(self.tree_, X, Y,X_range)
     def apply(self, X):
         return self.tree_.apply(X)
@@ -75,8 +81,8 @@ class BaseRecursiveTree(object):
 
 
 class RegressionTree(BaseRecursiveTree):
-    def __init__(self, splitter="maxedge", estimator="pointwise_extrapolation_estimator", min_samples_split=2, max_depth=None, order=1, log_Xrange=True, random_state=None,polynomial_output=0, truncate_ratio_low=0.2 , truncate_ratio_up=0.55,numba_acc=1,parallel_jobs=0):
-        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up,numba_acc=numba_acc,parallel_jobs=parallel_jobs)
+    def __init__(self, splitter="maxedge", estimator="pointwise_extrapolation_estimator", min_samples_split=2, max_depth=None, order=1, log_Xrange=True, random_state=None,polynomial_output=0, truncate_ratio_low=0 , truncate_ratio_up=1,numba_acc=1,parallel_jobs=0, r_range_low=0,r_range_up=1):
+        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up,numba_acc=numba_acc,parallel_jobs=parallel_jobs,r_range_low=r_range_low,r_range_up=r_range_up)
     def fit(self, X,Y, X_range="unit"):
         self.dim = X.shape[1]
         if X_range is None:
@@ -132,8 +138,8 @@ class RegressionTree(BaseRecursiveTree):
                         intercept)
         return return_vec
     
-    def get_node_extrapolation(self,dt_X, dt_Y, X_extra, X_range, order, low, up):
-        return extrapolation_jit_return_info(dt_X, dt_Y, X_extra, X_range, order, low, up)
+    def get_node_extrapolation(self,dt_X, dt_Y, X_extra, X_range, order, low, up, r_low,r_up):
+        return extrapolation_jit_return_info(dt_X, dt_Y, X_extra, X_range, order, low, up, r_low,r_up)
 
     
     def get_params(self, deep=True):
@@ -151,7 +157,7 @@ class RegressionTree(BaseRecursiveTree):
             Parameter names mapped to their values.
         """
         out = dict()
-        for key in ['min_samples_split',"max_depth","order","truncate_ratio_low","truncate_ratio_up"]:
+        for key in ['min_samples_split',"max_depth","order","truncate_ratio_low","truncate_ratio_up","splitter","r_range_low","r_range_up"]:
             value = getattr(self, key, None)
             if deep and hasattr(value, 'get_params'):
                 deep_items = value.get_params().items()

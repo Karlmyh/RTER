@@ -1,7 +1,7 @@
 from numba import njit
 import numpy as np
 
-def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up):
+def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up,r_range_low,r_range_up):
 
     ratio_vec=np.array([])
     for idx_X, X in enumerate(dt_X):
@@ -26,17 +26,21 @@ def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,
     sorted_ratio = ratio_vec[idx_sorted_by_ratio]
     sorted_y = dt_Y[idx_sorted_by_ratio]
 
-    ratio_mat=np.array([[r**(2*i) for i in range(order+1)] for r in sorted_ratio][int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)])
+    ratio_mat=np.array([[r**i for i in range(order+1)] for r in sorted_ratio][int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)])
     pre_vec=np.array([ sorted_y[:(i+1)].mean()  for i in range(sorted_y.shape[0])][int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)]).reshape(-1,1)
     
-    
+    ratio_range_idx_up = ratio_mat[:,1]< r_range_up
+    ratio_range_idx_low  = ratio_mat[:,1]> r_range_low
+    ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
+    ratio_mat=ratio_mat[ratio_range_idx]
+    pre_vec=pre_vec[ratio_range_idx]
 
     
 
     return (np.linalg.inv(ratio_mat.T @ ratio_mat) @ ratio_mat.T @ pre_vec)[0].item()
 
 @njit
-def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up):
+def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up,r_range_low,r_range_up):
     
     
     n_pts= dt_X.shape[0]
@@ -78,11 +82,13 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,tru
         r= sorted_ratio[i]
         
         for j in range(order +1):
-            ratio_mat[i,j]= r**(2*j) 
+            ratio_mat[i,j]= r**j 
             
         i+=1
             
     ratio_mat_used=ratio_mat[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)]
+    
+    
     
    
     pre_vec=np.zeros((sorted_y.shape[0],1))
@@ -91,13 +97,19 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,tru
     
     pre_vec_used=pre_vec[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)]
     
+    ratio_range_idx_up = ratio_mat_used[:,1]< r_range_up
+    ratio_range_idx_low  = ratio_mat_used[:,1]> r_range_low
+    ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
+    ratio_mat_final=ratio_mat_used[ratio_range_idx]
+    pre_vec_final=pre_vec_used[ratio_range_idx]
+    
 
-    return (np.linalg.inv(ratio_mat_used.T @ ratio_mat_used) @ ratio_mat_used.T @ pre_vec_used )[0,0]
+    return (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final) @ ratio_mat_final.T @ pre_vec_final )[0,0]
     
     
     
 @njit
-def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up):
+def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up,r_range_low,r_range_up):
     
     
     n_pts= dt_X.shape[0]
@@ -151,7 +163,7 @@ def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_r
         r= sorted_ratio[i]
         
         for j in range(order +1):
-            ratio_mat[i,j]= r**(2*j) 
+            ratio_mat[i,j]= r**j 
             
         i+=1
             
@@ -164,8 +176,16 @@ def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_r
     
     pre_vec_used=pre_vec[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up)]
     
+    ratio_range_idx_up = ratio_mat_used[:,1]< r_range_up
+    ratio_range_idx_low  = ratio_mat_used[:,1]> r_range_low
+    ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
+    ratio_mat_final=ratio_mat_used[ratio_range_idx]
+    pre_vec_final=pre_vec_used[ratio_range_idx]
+    
 
-    return sorted_ratio, pre_vec,  (np.linalg.inv(ratio_mat_used.T @ ratio_mat_used) @ ratio_mat_used.T @ pre_vec_used )[0,0]
+    
+
+    return sorted_ratio, pre_vec,  (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final) @ ratio_mat_final.T @ pre_vec_final )[0,0]
     
     
     
