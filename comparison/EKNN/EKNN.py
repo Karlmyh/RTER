@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.neighbors import KDTree
 from sklearn.linear_model import LinearRegression
 
-class zeronn(object):
+class EKNN(object):
     def __init__(self, V = 5 ,C=10 ):
         
         self.V = 5 

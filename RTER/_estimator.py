@@ -96,8 +96,11 @@ class ExtrapolationEstimator(object):
         ratio_mat=[[r**(2*i+2) for i in range(self.order)] for r in self.sorted_ratio][int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
         pre_vec=[ self.sorted_y[:(i+1)].mean()  for i in range(self.sorted_y.shape[0])][int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
         
-        ratio_range_idx_up = ratio_mat[:,0]**0.5< self.r_range_up
-        ratio_range_idx_low  = ratio_mat[:,0]**0.5> self.r_range_low
+        ratio_mat = np.array(ratio_mat)
+        pre_vec = np.array(pre_vec)
+        
+        ratio_range_idx_up = (ratio_mat[:,0]**0.5)< self.r_range_up
+        ratio_range_idx_low  = (ratio_mat[:,0]**0.5)> self.r_range_low
         ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
         ratio_mat=ratio_mat[ratio_range_idx]
         pre_vec=pre_vec[ratio_range_idx]

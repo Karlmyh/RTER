@@ -41,7 +41,7 @@ def f_6(x):
     return x[0]
 
 def f_7(x):
-    return np.abs(np.sin(np.pi*2*x[0]))*np.abs(np.sin(np.pi*2*x[1]))
+    return np.abs(np.sin(np.pi*4*x[0]))*np.abs(np.sin(np.pi*4*x[1]))
 
 class TestDistribution(object):
     def __init__(self,index,dim="auto"):

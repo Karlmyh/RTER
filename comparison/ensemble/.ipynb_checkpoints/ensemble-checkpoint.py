@@ -1,237 +1,133 @@
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from RTER import RegressionTree
+from sklearn.metrics import mean_squared_error as MSE
 
-from ._utils import extrapolation_jit, extrapolation_nonjit
-
-class NaiveEstimator(object):
+class Ensemble(object):
     def __init__(self, 
-                 X_range, 
-                 num_samples, 
-                 dt_X, 
-                 dt_Y, 
-                 order=None,
-                 polynomial_output=0,
-                 truncate_ratio_low=0,
-                 truncate_ratio_up=1,
-                 r_range_up=1,
-                 r_range_low=0):
-        self.dt_Y=dt_Y
-        self.dtype = np.float64
-        self.n_node_samples=dt_X.shape[0]
-        self.X_range = X_range
-
+                 estimator_fun, 
+                 estimator_kargs, 
+                 ensemble_num,  
+                 ):
+        self.estimator_fun = estimator_fun
+        self.estimator_kargs = estimator_kargs
+        self.ensemble_num = ensemble_num
+        self.regs = []
         
-    def fit(self):
-        if self.n_node_samples != 0:
-            self.y_hat = self.dt_Y.mean()
-        else:
-            self.y_hat= self.dt_Y.mean()
         
-    def predict(self, test_X,numba_acc=0):
-        y_predict = np.full(test_X.shape[0],self.y_hat, dtype=self.dtype)
-        return y_predict
+    def fit(self, X, y):
+       
+        for i in range(self.ensemble_num):
+            self.estimator_kargs["random_state"]=i
+            self.regs.append(self.estimator_fun(**self.estimator_kargs))
+            self.regs[i].fit(X, y)
+            
+        
+    def predict(self, X):
+        y_hat = np.zeros(X.shape[0])
+        for i in range(self.ensemble_num):
+            y_hat +=  self.regs[i].predict(X)
+        y_hat/= self.ensemble_num
+        return y_hat
     
     
-class ExtrapolationEstimator(object):
-    def __init__(self, 
-                 X_range, 
-                 num_samples, 
-                 dt_X,
-                 dt_Y,
-                 order,
-                 polynomial_output,
-                 truncate_ratio_low,
-                 truncate_ratio_up,
-                 r_range_up=1,
-                 r_range_low=0):
-        self.X_range = X_range
+        
 
-        self.X_central = X_range.mean(axis=0)
-        self.X_edge_ratio = X_range[1]-X_range[0]
-
-        self.dim=X_range.shape[1]
-        self.dt_X=dt_X
-        self.dt_Y=dt_Y
+class RegressionTreeEnsemble(Ensemble):
+    def __init__(self,  ensemble_num=20, splitter="maxedge", estimator="naive_estimator",
+                 min_samples_split=2, max_depth=None, log_Xrange=True, random_state=None, order=1,
+                 polynomial_output=0, truncate_ratio_low=0 , truncate_ratio_up=1,numba_acc=1, 
+                 parallel_jobs=0, r_range_low=0,r_range_up=1):
+        
+        self.splitter = splitter
+        self.estimator = estimator
+        self.min_samples_split = min_samples_split
+        self.max_depth = max_depth
         self.order=order
-        
-        self.n_node_samples=dt_X.shape[0]
-
-        
-        self.dtype = np.float64
+    
+        self.log_Xrange = log_Xrange
+        self.random_state = random_state
         self.polynomial_output=polynomial_output
-        
-   
         self.truncate_ratio_low=truncate_ratio_low
+        
         self.truncate_ratio_up=truncate_ratio_up
-        self.r_range_up=r_range_up
-        self.r_range_low = r_range_low
-    
+        self.numba_acc=numba_acc
         
-    def similar_ratio(self,instance,X_central,X_edge_ratio):
-        return self.unit_square_similar_ratio(self.linear_transform(instance,X_central,X_edge_ratio))
-    
-    @staticmethod  
-    def unit_square_similar_ratio(instance):
-        return np.abs(instance-np.zeros(instance.shape[0])).max()
-    @staticmethod  
-    def linear_transform(instance,X_central,X_edge_ratio):
-        return (instance-X_central)/X_edge_ratio*2
-    
-    def similar_ratio_vec(self, X):
-        return [self.similar_ratio(X[i],self.X_central,self.X_edge_ratio) for i in range(X.shape[0])]
-    
+        self.parallel_jobs = parallel_jobs
+        self.r_range_up =r_range_up
+        self.r_range_low =r_range_low
+        
+        estimator_fun = RegressionTree
+        estimator_kargs = {"splitter":self.splitter, "estimator":self.estimator, "min_samples_split":self.min_samples_split, 
+                           "max_depth":self.max_depth,"log_Xrange":self.log_Xrange ,"random_state":self.random_state,
+                           "order":self.order,"polynomial_output":self.polynomial_output,
+                           "truncate_ratio_low":self.truncate_ratio_low,"truncate_ratio_up":self.truncate_ratio_up,
+                           "numba_acc":self.numba_acc,"parallel_jobs":self.parallel_jobs,
+                           "r_range_low":self.r_range_low,"r_range_up":self.r_range_up} 
+        
+        super(RegressionTreeEnsemble, self).__init__(estimator_fun=estimator_fun,  estimator_kargs =estimator_kargs, ensemble_num = ensemble_num )
+        
+        
+        
+        
+        
+        
+        
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
 
-    def extrapolation(self):
-        
+        Parameters
+        ----------
+        deep : boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
 
-        ratio_vec=self.similar_ratio_vec(self.dt_X)
-        
-        idx_sorted_by_ratio=np.argsort(ratio_vec)      
-        self.sorted_ratio = np.array(ratio_vec)[idx_sorted_by_ratio]
-        self.sorted_y = self.dt_Y[idx_sorted_by_ratio]
-        self.sorted_prediction= np.array([ self.sorted_y[:(i+1)].mean()  for i in range(self.sorted_y.shape[0])])
-        
-        #print(self.dt_X)
-        
-        ratio_mat=[[r**(2*i+2) for i in range(self.order)] for r in self.sorted_ratio][int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
-        pre_vec=[ self.sorted_y[:(i+1)].mean()  for i in range(self.sorted_y.shape[0])][int(self.sorted_ratio.shape[0]*self.truncate_ratio_low):int(self.sorted_ratio.shape[0]*self.truncate_ratio_up)]
-        
-        ratio_range_idx_up = ratio_mat[:,0]**0.5< self.r_range_up
-        ratio_range_idx_low  = ratio_mat[:,0]**0.5> self.r_range_low
-        ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
-        ratio_mat=ratio_mat[ratio_range_idx]
-        pre_vec=pre_vec[ratio_range_idx]
-        
-        linear_model=LinearRegression()
-        linear_model.fit(np.array(ratio_mat),np.array(pre_vec).reshape(-1,1))
-        
-        self.coef=linear_model.coef_.reshape(-1,1)
-        self.intercept=linear_model.intercept_.item()
-        
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
+        """
+        out = dict()
+        for key in [ "ensemble_num" ,'min_samples_split',"max_depth","order", 
+                    "truncate_ratio_low","truncate_ratio_up","splitter",
+                    "r_range_low","r_range_up"]:
+            value = getattr(self, key, None)
+            if deep and hasattr(value, 'get_params'):
+                deep_items = value.get_params().items()
+                out.update((key + '__' + k, val) for k, val in deep_items)
+            out[key] = value
+        return out
+    
+    
+    def set_params(self, **params):
+        """Set the parameters of this estimator.
 
-        
-        
-    
-    def fit(self):
-        
-     
-        if self.n_node_samples==0:
-            self.y_hat = 0
-        else:
-            if self.order==0:
-                self.y_hat = self.dt_Y.mean()
-            else:
-                self.extrapolation()
-                if self.polynomial_output:
-                    self.y_hat=None
-                    self.naive_est=self.intercept
-                else:
-                    self.y_hat=self.intercept
-        
-    
-        
-    def predict(self, test_X,numba_acc=0):
-        
-        if len(test_X)==0:
-            return np.array([])
-        
-        if self.y_hat is None:
-            
-            ratio_vec=self.similar_ratio_vec(test_X)
-            
-            
-            ratio_mat=np.array([[r**(2*i+2) for i in range(self.order)] for r in ratio_vec])
-    
-            y_hat=(ratio_mat @ self.coef +self.intercept).ravel()
-            
-            y_predict=[]
-            
-            for i in range(y_hat.shape[0]):
-                inner_index =  self.sorted_ratio<ratio_vec[i]
-                num_inner= inner_index.sum()
-                y_predict.append(y_hat[i]* (num_inner+1)-self.sorted_y[self.sorted_ratio<ratio_vec[i]].sum() )
-                #print(num_inner)
-                #print((y_hat[i]* (num_inner+1),self.sorted_y[self.sorted_ratio<ratio_vec[i]].sum()))
-            y_predict=np.array(y_predict)
-            
-           
-            
-            truncate_index= (ratio_vec<self.sorted_ratio[self.truncate_low])
-            y_predict[truncate_index]=self.naive_est
-            
-         
-        else:
-            y_predict = np.full(test_X.shape[0],self.y_hat, dtype=self.dtype)
-        
-        return y_predict
-    
+        The method works on simple estimators as well as on nested objects
+        (such as pipelines). The latter have parameters of the form
+        ``<component>__<parameter>`` so that it's possible to update each
+        component of a nested object.
 
-class PointwiseExtrapolationEstimator(object):
-    def __init__(self, 
-                 X_range, 
-                 num_samples, 
-                 dt_X,
-                 dt_Y,
-                 order,
-                 polynomial_output,
-                 truncate_ratio_low,
-                 truncate_ratio_up,
-                 r_range_up=1,
-                 r_range_low=0):
-        self.X_range = X_range
+        Returns
+        -------
+        self
+        """
+        if not params:
+            # Simple optimization to gain speed (inspect is slow)
+            return self
+        valid_params = self.get_params(deep=True)
 
-      
-        
 
-        self.dim=X_range.shape[1]
-        self.dt_X=dt_X
-        self.dt_Y=dt_Y
-        self.order=order
-        
-        self.n_node_samples=dt_X.shape[0]
+        for key, value in params.items():
+            if key not in valid_params:
+                raise ValueError('Invalid parameter %s for estimator %s. '
+                                 'Check the list of available parameters '
+                                 'with `estimator.get_params().keys()`.' %
+                                 (key, self))
+            setattr(self, key, value)
+            valid_params[key] = value
 
-        
-        self.dtype = np.float64
-        self.polynomial_output=polynomial_output
-        
-   
-        self.truncate_ratio_low=truncate_ratio_low
-        self.truncate_ratio_up=truncate_ratio_up
-        self.r_range_up=r_range_up
-        self.r_range_low = r_range_low
-  
-        
-        
+        return self
     
-    def fit(self):
-        
-     
-        if self.n_node_samples==0:
-            self.y_hat = 0
-        else:
-            self.y_hat=None
-        
     
+    def score(self, X, y):
         
-    def predict(self, test_X,numba_acc=0):
-        
-        if len(test_X)==0:
-            return np.array([])
-        
-        if self.y_hat is None:
-            pre_vec=[]
-            for X in test_X:
-                if numba_acc:
-                    pre_vec.append(extrapolation_jit(self.dt_X,self.dt_Y, 
-                                                      X, self.X_range, self.order,
-                                                      self.truncate_ratio_low,self.truncate_ratio_up,self.r_range_low,self.r_range_up))
-                else:
-                    pre_vec.append(extrapolation_nonjit(self.dt_X,self.dt_Y, 
-                                                      X, self.X_range, self.order,
-                                                      self.truncate_ratio_low,self.truncate_ratio_up,self.r_range_low,self.r_range_up))
-            
-            y_predict=np.array(pre_vec)
-        else:
-            y_predict = np.full(test_X.shape[0],self.y_hat, dtype=self.dtype)
-        
-        return y_predict
+        return -MSE(self.predict(X),y)
