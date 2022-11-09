@@ -25,14 +25,17 @@ class BaseRecursiveTree(object):
                  truncate_ratio_up=None,
                  numba_acc=None,
                  parallel_jobs=None,
+                 step=None,
                  r_range_up=None,
-                r_range_low=None):
+                r_range_low=None,
+                 lamda=None
+                ):
         self.splitter = splitter
         self.estimator = estimator
         self.min_samples_split = min_samples_split
         self.max_depth = max_depth
         self.order=order
-    
+        self.step=step
         self.log_Xrange = log_Xrange
         self.random_state = random_state
         self.polynomial_output=polynomial_output
@@ -44,6 +47,7 @@ class BaseRecursiveTree(object):
         self.parallel_jobs = parallel_jobs
         self.r_range_up =r_range_up
         self.r_range_low =r_range_low
+        self.lamda=lamda
              
     def fit(self, X, Y,X_range=None):
         self.n_samples, self.n_features = X.shape
@@ -67,8 +71,10 @@ class BaseRecursiveTree(object):
                                        self.polynomial_output,
                                        self.truncate_ratio_low,
                                        self.truncate_ratio_up,
+                                       self.step,
                                       self.r_range_up,
-                                      self.r_range_low)
+                                      self.r_range_low,
+                                      self.lamda)
         builder.build(self.tree_, X, Y,X_range)
     def apply(self, X):
         return self.tree_.apply(X)
@@ -81,8 +87,8 @@ class BaseRecursiveTree(object):
 
 
 class RegressionTree(BaseRecursiveTree):
-    def __init__(self, splitter="maxedge", estimator="pointwise_extrapolation_estimator", min_samples_split=2, max_depth=None, order=1, log_Xrange=True, random_state=None,polynomial_output=0, truncate_ratio_low=0 , truncate_ratio_up=1,numba_acc=1,parallel_jobs=0, r_range_low=0,r_range_up=1):
-        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up,numba_acc=numba_acc,parallel_jobs=parallel_jobs,r_range_low=r_range_low,r_range_up=r_range_up)
+    def __init__(self, splitter="maxedge", estimator="pointwise_extrapolation_estimator", min_samples_split=2, max_depth=None, order=1, log_Xrange=True, random_state=None,polynomial_output=0, truncate_ratio_low=0 , truncate_ratio_up=1,numba_acc=1,parallel_jobs=0, r_range_low=0,r_range_up=1,step = 1,lamda=0.01):
+        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up,numba_acc=numba_acc,parallel_jobs=parallel_jobs,r_range_low=r_range_low,r_range_up=r_range_up,step=step,lamda=lamda)
     def fit(self, X,Y, X_range="unit"):
         self.dim = X.shape[1]
         if X_range is None:
@@ -138,8 +144,8 @@ class RegressionTree(BaseRecursiveTree):
                         intercept)
         return return_vec
     
-    def get_node_extrapolation(self,dt_X, dt_Y, X_extra, X_range, order, low, up, r_low,r_up):
-        return extrapolation_jit_return_info(dt_X, dt_Y, X_extra, X_range, order, low, up, r_low,r_up)
+    def get_node_extrapolation(self,dt_X, dt_Y, X_extra, X_range, order, low, up,r_low,r_up,step,lamda):
+        return extrapolation_jit_return_info(dt_X, dt_Y, X_extra, X_range, order, low, up, r_low,r_up,step,lamda)
 
     
     def get_params(self, deep=True):
@@ -157,7 +163,7 @@ class RegressionTree(BaseRecursiveTree):
             Parameter names mapped to their values.
         """
         out = dict()
-        for key in ['min_samples_split',"max_depth","order","truncate_ratio_low","truncate_ratio_up","splitter","r_range_low","r_range_up"]:
+        for key in ['min_samples_split',"max_depth","order","truncate_ratio_low","truncate_ratio_up","splitter","r_range_low","r_range_up","step","lamda"]:
             value = getattr(self, key, None)
             if deep and hasattr(value, 'get_params'):
                 deep_items = value.get_params().items()

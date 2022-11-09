@@ -13,8 +13,10 @@ class NaiveEstimator(object):
                  polynomial_output=0,
                  truncate_ratio_low=0,
                  truncate_ratio_up=1,
+                 step =1,
                  r_range_up=1,
-                 r_range_low=0):
+                 r_range_low=0,
+                lamda=0.01):
         self.dt_Y=dt_Y
         self.dtype = np.float64
         self.n_node_samples=dt_X.shape[0]
@@ -42,8 +44,10 @@ class ExtrapolationEstimator(object):
                  polynomial_output,
                  truncate_ratio_low,
                  truncate_ratio_up,
+                 step =1,
                  r_range_up=1,
-                 r_range_low=0):
+                 r_range_low=0,
+                lamda=0.01):
         self.X_range = X_range
 
         self.X_central = X_range.mean(axis=0)
@@ -179,8 +183,11 @@ class PointwiseExtrapolationEstimator(object):
                  polynomial_output,
                  truncate_ratio_low,
                  truncate_ratio_up,
+                 step=1,
                  r_range_up=1,
-                 r_range_low=0):
+                 r_range_low=0,
+                lamda=0.01,
+                ):
         self.X_range = X_range
 
       
@@ -190,19 +197,19 @@ class PointwiseExtrapolationEstimator(object):
         self.dt_X=dt_X
         self.dt_Y=dt_Y
         self.order=order
-        
+        self.lamda = lamda
         self.n_node_samples=dt_X.shape[0]
 
         
         self.dtype = np.float64
-        self.polynomial_output=polynomial_output
+
         
    
         self.truncate_ratio_low=truncate_ratio_low
         self.truncate_ratio_up=truncate_ratio_up
         self.r_range_up=r_range_up
         self.r_range_low = r_range_low
-  
+        self.step =step
         
         
     
@@ -227,11 +234,11 @@ class PointwiseExtrapolationEstimator(object):
                 if numba_acc:
                     pre_vec.append(extrapolation_jit(self.dt_X,self.dt_Y, 
                                                       X, self.X_range, self.order,
-                                                      self.truncate_ratio_low,self.truncate_ratio_up,self.r_range_low,self.r_range_up))
+                                                      self.truncate_ratio_low,self.truncate_ratio_up,self.r_range_low,self.r_range_up,self.step,self.lamda))
                 else:
                     pre_vec.append(extrapolation_nonjit(self.dt_X,self.dt_Y, 
                                                       X, self.X_range, self.order,
-                                                      self.truncate_ratio_low,self.truncate_ratio_up,self.r_range_low,self.r_range_up))
+                                                      self.truncate_ratio_low,self.truncate_ratio_up,self.r_range_low,self.r_range_up,self.step,self.lamda))
             
             y_predict=np.array(pre_vec)
         else:

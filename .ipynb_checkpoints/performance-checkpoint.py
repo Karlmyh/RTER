@@ -1,6 +1,8 @@
 from distribution import TestDistribution
 
 from RTER import RegressionTree
+from comparison.ensemble import RegressionTreeBoosting, RegressionTreeEnsemble
+from comparison.EKNN import EKNN
 
 import numpy as np
 
@@ -13,8 +15,8 @@ import os
 
 
 
-distribution_index_vec=[1,2,3,4]
-repeat_time=2
+distribution_index_vec=[1,2,3,4,5,6,7,8]
+repeat_time=5
 
 
 log_file_dir = "./results/accuracy/"
@@ -31,52 +33,23 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
 
 
         sample_generator=TestDistribution(distribution_index).returnDistribution()
-        n_test, n_train = 2000,1000
+        n_test, n_train = 3000,3000
         X_train, Y_train = sample_generator.generate(n_train)
-        X_test, Y_test = sample_generator.generate_true(n_test)
+        X_test, Y_test = sample_generator.generate(n_test)
 
-        '''
-        # RTER
-        time_start=time()
-        #parameters={"C":[i for i in np.logspace(-1.5,1.5,15)]}
-        #cv_model_AWNN=GridSearchCV(estimator=AWNN(),param_grid=parameters,n_jobs=-1,cv=10)
-        #cv_model_AWNN.fit(X_train)
-        RTER_model=RegressionTree(estimator="pointwise_extrapolation_estimator",
-                         splitter="midpoint",
-                         min_samples_split=30,
-                         max_depth=3,
-                         random_state=iterate,
-                         truncate_ratio_low=0.3,
-                         truncate_ratio_up=0.7)
-        RTER_model.fit(X_train,Y_train)
-        Y_hat=RTER_model.predict(X_test)
         
+        # RTER 
+        time_start=time()
+        parameters={"truncate_ratio_low":[0], "truncate_ratio_up":[0.4,0.6,0.8 ],"min_samples_split":[10,30], 
+                    "max_depth":[1,2,3,4], "order":[1,2,4,6,8],"splitter":["maxedge"],"step":[1,2,4,6,7],
+                    "lamda":[0.1,0.5,1,2,5]}
+        cv_model_RTER=GridSearchCV(estimator=RegressionTree(min_samples_split=30, max_depth=3,parallel_jobs=0),param_grid=parameters, cv=3, n_jobs=18)
+        cv_model_RTER.fit(X_train, Y_train)
+        RTER_model = cv_model_RTER.best_estimator_
+        mse_score=-RTER_model.score(X_test, Y_test)
         time_end=time()
         
         log_file_name = "{}.csv".format("RTER")
-        log_file_path = os.path.join(log_file_dir, log_file_name)
-        
-        with open(log_file_path, "a") as f:
-            logs= "{},{},{},{},{},{}\n".format(distribution_index,
-                                          MSE(Y_hat,Y_test), time_end-time_start,
-                                          iterate,n_train,n_test)
-            f.writelines(logs)
-
-            '''
-        
-        
-        # RTER with cv
-        time_start=time()
-        parameters={"truncate_ratio_low":[0.1,0.2,0.3 ], "truncate_ratio_up":[0.7,0.8 ]}
-        cv_model_RTER=GridSearchCV(estimator=RegressionTree(min_samples_split=30, max_depth=3,parallel_jobs=0),param_grid=parameters, cv=3, n_jobs=18)
-        cv_model_RTER.fit(X_train, Y_train)
-        
-        RTER_model = cv_model_RTER.best_estimator_
-        mse_score=RTER_model.score(X_test, Y_test)
-        
-        time_end=time()
-        
-        log_file_name = "{}.csv".format("RTER_cv")
         log_file_path = os.path.join(log_file_dir, log_file_name)
         
         with open(log_file_path, "a") as f:
@@ -85,19 +58,53 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
                                           iterate,n_train,n_test)
             f.writelines(logs)
             
-            
-            
-            
+        # boosting
+        time_start=time()
+        parameters={"rho":[0.01,0.05,0.1], "boost_num":[20,50,100], "min_samples_split":[5,10,30], "max_depth":[2,4,6,8],"splitter":["maxedge"]}
+        cv_model_boosting=GridSearchCV(estimator=RegressionTreeBoosting(),param_grid=parameters, cv=10, n_jobs=-1)
+        cv_model_boosting.fit(X_train, Y_train)
+        boosting_model = cv_model_boosting.best_estimator_
+        mse_score= - boosting_model.score(X_test, Y_test)
+        log_file_name = "{}.csv".format("boosting")
+        log_file_path = os.path.join(log_file_dir, log_file_name)
+        time_end=time()
         
+        log_file_name = "{}.csv".format("boosting")
+        log_file_path = os.path.join(log_file_dir, log_file_name)
+        
+        with open(log_file_path, "a") as f:
+            logs= "{},{},{},{},{},{}\n".format(distribution_index,
+                                          mse_score, time_end-time_start,
+                                          iterate,n_train,n_test)
+            f.writelines(logs)
+         
+        # ensemble
+        time_start=time()
+        parameters={ "ensemble_num":[50,100,200], "min_samples_split":[5,10,30], "max_depth":[2,4,6,8],"splitter":["maxedge"]}
+        cv_model_ensemble=GridSearchCV(estimator=RegressionTreeEnsemble(),param_grid=parameters, cv=10, n_jobs=-1)
+        cv_model_ensemble.fit(X_train, Y_train)
+        ensemble_model = cv_model_ensemble.best_estimator_
+        mse_score= - ensemble_model.score(X_test, Y_test)
+        time_end=time()
+        
+        log_file_name = "{}.csv".format("ensemble")
+        log_file_path = os.path.join(log_file_dir, log_file_name)
+        
+        with open(log_file_path, "a") as f:
+            logs= "{},{},{},{},{},{}\n".format(distribution_index,
+                                          mse_score, time_end-time_start,
+                                          iterate,n_train,n_test)
+            f.writelines(logs)
+         
         # GBRT
         time_start=time()
-        
-        model_GBRT = GradientBoostingRegressor(n_estimators = 3000)
+        parameters= {"n_estimators":[500,1000,2000], "learning_rate":[0.01,0.05]}
+        cv_model_GBRT=GridSearchCV(estimator=GradientBoostingRegressor(),param_grid=parameters, cv=10, n_jobs=-1)
+        cv_model_GBRT.fit(X_train, Y_train)
+        model_GBRT = cv_model_GBRT.best_estimator_
         model_GBRT.fit(X_train, Y_train.ravel())
-        
         y_hat=model_GBRT.predict(X_test)
         mse_score = MSE(y_hat, Y_test)
-        
         time_end=time()
         
         log_file_name = "{}.csv".format("GBRT")
@@ -112,16 +119,38 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
             
         # RF
         time_start=time()
-        
-        model_RFR = RandomForestRegressor(n_estimators = 200)
-        model_RFR.fit(X_train, Y_train.ravel())
-        
+        parameters = {"n_estimators":[10,100,200]}
+        cv_model_RFR = GridSearchCV(estimator=RandomForestRegressor(),param_grid=parameters, cv=10, n_jobs=-1) 
+        cv_model_RFR.fit(X_train, Y_train)
+        model_RFR = cv_model_RFR.best_estimator_
+        model_RFR.fit(X_train, Y_train)
         y_hat=model_RFR.predict(X_test)
         mse_score = MSE(y_hat, Y_test)
-        
         time_end=time()
         
         log_file_name = "{}.csv".format("RFR")
+        log_file_path = os.path.join(log_file_dir, log_file_name)
+        
+        with open(log_file_path, "a") as f:
+            logs= "{},{},{},{},{},{}\n".format(distribution_index,
+                                          mse_score, time_end-time_start,
+                                          iterate,n_train,n_test)
+            f.writelines(logs)
+            
+            
+            
+        # EKNN
+        time_start=time()
+        parameters = {"V":[4,8,12,16], "C":[1,3,5,7,9,11],"alpha":[0.01,0.05,0.1]}
+        cv_model_EKNN = GridSearchCV(estimator=EKNN(),param_grid=parameters, cv=10, n_jobs=-1) 
+        cv_model_EKNN.fit(X_train, Y_train)
+        model_EKNN = cv_model_EKNN.best_estimator_
+        model_EKNN.fit(X_train, Y_train)
+        y_hat=model_EKNN.predict(X_test)
+        mse_score = MSE(y_hat, Y_test)
+        time_end=time()
+        
+        log_file_name = "{}.csv".format("EKNN")
         log_file_path = os.path.join(log_file_dir, log_file_name)
         
         with open(log_file_path, "a") as f:

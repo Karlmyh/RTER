@@ -121,8 +121,10 @@ class RecursiveTreeBuilder(object):
                  polynomial_output,
                  truncate_ratio_low,
                  truncate_ratio_up,
+                 step,
                 r_range_up,
-                r_range_low):
+                r_range_low,
+                lamda):
         # about splitter
         self.splitter = splitter
         # about estimator
@@ -136,6 +138,8 @@ class RecursiveTreeBuilder(object):
         self.truncate_ratio_up=truncate_ratio_up      
         self.r_range_up=r_range_up
         self.r_range_low = r_range_low
+        self.step = step
+        self.lamda = lamda
     def build(self, tree, X, Y, X_range=None):
         num_samples = X.shape[0]
         stack = []
@@ -173,8 +177,11 @@ class RecursiveTreeBuilder(object):
                                                             self.polynomial_output,
                                                             self.truncate_ratio_low,
                                                             self.truncate_ratio_up,
+                                                            self.step,
                                                             self.r_range_up, 
-                                                            self.r_range_low)
+                                                            self.r_range_low,
+                                                            self.lamda
+                                                           )
         
                 tree.leafnode_fun[node_id].fit()
             # begin branching if the node is not leaf
