@@ -91,12 +91,12 @@ class RegressionTree(BaseRecursiveTree):
         super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,polynomial_output=polynomial_output,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up,numba_acc=numba_acc,parallel_jobs=parallel_jobs,r_range_low=r_range_low,r_range_up=r_range_up,step=step,lamda=lamda)
     def fit(self, X,Y, X_range="unit"):
         self.dim = X.shape[1]
+        if X_range == "unit":
+            X_range = np.array([np.zeros(self.dim),np.ones(self.dim)])
         if X_range is None:
             X_range = np.zeros(shape=(2, X.shape[1]))
             X_range[0] = X.min(axis=0)-0.01*(X.max(axis=0)-X.min(axis=0))
             X_range[1] = X.max(axis=0)+0.01*(X.max(axis=0)-X.min(axis=0))
-        if X_range == "unit":
-            X_range = np.array([np.zeros(self.dim),np.ones(self.dim)])
         self.X_range = X_range
         
         super(RegressionTree, self).fit(X,Y,self.X_range)

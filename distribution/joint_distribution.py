@@ -23,7 +23,7 @@ class JointDistribution(object):
         
         return X, Y_true+ self.noise_obj.generate(n)
     
-    def generate_true(self, n):
+    def generat_true(self, n):
         
         X = self.marginal_obj.generate(n)
         Y_true = self.regression_obj.apply(X)
@@ -31,8 +31,18 @@ class JointDistribution(object):
         
         X = (X- self.X_range[0])/(self.X_range[1] - self.X_range[0])
         
-        
         return X, Y_true
+    
+    def generate_nonscale(self, n):
+        
+        X = self.marginal_obj.generate(n)
+        Y_true = self.regression_obj.apply(X)
+        
+        
+   
+        
+        
+        return X, Y_true+ self.noise_obj.generate(n)
         
         
         

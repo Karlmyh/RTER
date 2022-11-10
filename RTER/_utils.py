@@ -2,7 +2,8 @@ from numba import njit
 import numpy as np
 
 def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up,r_range_low,r_range_up,step,lamda):
-
+    
+    radius = X_range[1,0]- X_range[0,0]
     ratio_vec=np.array([])
     for idx_X, X in enumerate(dt_X):
         
@@ -17,7 +18,7 @@ def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,
             else:
                 centralized[d]/=negative_len
         
-        ratio_X= np.abs(centralized).max()
+        ratio_X= np.abs(centralized).max() *radius
         ratio_vec=np.append(ratio_vec,ratio_X)
 
     
@@ -34,15 +35,18 @@ def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,
     ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
     ratio_mat=ratio_mat[ratio_range_idx]
     pre_vec=pre_vec[ratio_range_idx]
+    
+    id_matrix = np.eye(ratio_mat_final.shape[1])
+    id_matrix[0,0] = 0
 
     
 
-    return (np.linalg.inv(ratio_mat.T @ ratio_mat+ np.eye(ratio_mat.shape[1])*lamda) @ ratio_mat.T @ pre_vec)[0].item()
+    return (np.linalg.inv(ratio_mat.T @ ratio_mat+ id_matrix*lamda) @ ratio_mat.T @ pre_vec)[0].item()
 
 @njit
 def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low, truncate_ratio_up, r_range_low, r_range_up, step, lamda):
     
-    
+    radius = X_range[1,0]- X_range[0,0]
     n_pts= dt_X.shape[0]
     
     
@@ -63,7 +67,7 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low, tr
                 
                 centralized[d]/=negative_len
         
-        ratio_X= np.abs(centralized).max()
+        ratio_X= np.abs(centralized).max()*radius
         ratio_vec[idx_X]=ratio_X
         
 
@@ -103,14 +107,16 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low, tr
     ratio_mat_final=ratio_mat_used[ratio_range_idx]
     pre_vec_final=pre_vec_used[ratio_range_idx]
     
+    id_matrix = np.eye(ratio_mat_final.shape[1])
+    id_matrix[0,0] = 0
 
-    return (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final+ np.eye(ratio_mat_final.shape[1])*lamda) @ ratio_mat_final.T @ pre_vec_final )[0,0]
+    return (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final+ id_matrix*lamda) @ ratio_mat_final.T @ pre_vec_final )[0,0]
    
     
     
 @njit
 def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up,r_range_low,r_range_up,step,lamda):
-    
+    radius = X_range[1,0]- X_range[0,0]
     
     n_pts= dt_X.shape[0]
     
@@ -140,7 +146,7 @@ def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_r
         
         
             
-        ratio_X= np.abs(centralized).max()
+        ratio_X= np.abs(centralized).max()*radius
         #if ratio_X>5:
             #print(centralized)
         
@@ -183,9 +189,10 @@ def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_r
     pre_vec_final=pre_vec_used[ratio_range_idx]
     
 
-    
+    id_matrix = np.eye(ratio_mat_final.shape[1])
+    id_matrix[0,0] = 0
 
-    return sorted_ratio, pre_vec,  (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final+ np.eye(ratio_mat_final.shape[1])*lamda) @ ratio_mat_final.T @ pre_vec_final )[0,0]
+    return sorted_ratio, pre_vec,  (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final+ id_matrix*lamda) @ ratio_mat_final.T @ pre_vec_final )[0,0], ratio_mat_final.shape[0] - (ratio_mat_final[:,1:] @ np.linalg.inv(ratio_mat_final[:,1:].T @ ratio_mat_final[:,1:]) @ ratio_mat_final[:,1:].T  ).sum()
     
     
     

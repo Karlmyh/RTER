@@ -32,6 +32,7 @@ class MaxEdgeRandomSplitter(object):
     def __call__(self, X, X_range):
         n_node_samples, dim = X.shape
         edge_ratio= X_range[1]-X_range[0]
+        
         rd_dim = np.random.choice(np.where(edge_ratio==edge_ratio.max())[0])
         #rd_dim = np.random.randint(0, dim)
         rddim_min = X_range[0, rd_dim]
