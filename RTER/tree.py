@@ -1,14 +1,13 @@
 import numpy as np
 from sklearn.metrics import mean_squared_error as MSE
-from sklearn.preprocessing import MinMaxScaler
 
 from ._tree import TreeStruct, RecursiveTreeBuilder
-from ._splitter import PurelyRandomSplitter,MidPointRandomSplitter, MaxEdgeRandomSplitter
+from ._splitter import PurelyRandomSplitter,MidPointRandomSplitter, MaxEdgeRandomSplitter, VarianceReductionSplitter
 from ._estimator import NaiveEstimator,ExtrapolationEstimator,PointwiseExtrapolationEstimator
 from ._utils import extrapolation_jit_return_info
 
 
-SPLITTERS = {"purely": PurelyRandomSplitter,"midpoint":MidPointRandomSplitter, "maxedge":MaxEdgeRandomSplitter}
+SPLITTERS = {"purely": PurelyRandomSplitter,"midpoint":MidPointRandomSplitter, "maxedge":MaxEdgeRandomSplitter, "varreduction":VarianceReductionSplitter}
 ESTIMATORS = {"naive_estimator": NaiveEstimator,"extrapolation_estimator":ExtrapolationEstimator,"pointwise_extrapolation_estimator":PointwiseExtrapolationEstimator}
 
 class BaseRecursiveTree(object):

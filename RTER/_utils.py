@@ -214,3 +214,32 @@ def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_r
     
     
     
+    
+  
+    
+def insample_ssq(y):
+    return np.var(y)*len(y)
+    
+    
+    
+def compute_variace_dim(dt_X_dim, dt_Y):
+    
+    
+    sorted_X = np.sort(dt_X_dim) 
+    
+    num_samples = len(sorted_X)
+    
+    split_point = 0
+    mse = 0 
+    
+    for i in range(num_samples- 1):
+        
+        check_split = (sorted_X[i]+sorted_X[i+1])/2
+        
+        check_mse = insample_ssq(dt_Y[dt_X_dim<check_split])+insample_ssq(dt_Y[dt_X_dim>=check_split])
+    
+        if check_mse > mse:
+            split_point = check_split
+            mse = check_mse
+    
+    return mse, split_point
