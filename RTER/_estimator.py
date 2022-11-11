@@ -27,7 +27,7 @@ class NaiveEstimator(object):
         if self.n_node_samples != 0:
             self.y_hat = self.dt_Y.mean()
         else:
-            self.y_hat= self.dt_Y.mean()
+            self.y_hat= 0
         
     def predict(self, test_X,numba_acc=0):
         y_predict = np.full(test_X.shape[0],self.y_hat, dtype=self.dtype)

@@ -30,14 +30,17 @@ def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,
     ratio_mat=np.array([[r**i for i in range(order+1)] for r in sorted_ratio][int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up):step])
     pre_vec=np.array([ sorted_y[:(i+1)].mean()  for i in range(sorted_y.shape[0])][int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up):step]).reshape(-1,1)
     
-    ratio_range_idx_up = ratio_mat[:,1]< r_range_up
-    ratio_range_idx_low  = ratio_mat[:,1]> r_range_low
-    ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
-    ratio_mat=ratio_mat[ratio_range_idx]
-    pre_vec=pre_vec[ratio_range_idx]
+    if order != 0:
+        ratio_range_idx_up = ratio_mat[:,1]< r_range_up
+        ratio_range_idx_low  = ratio_mat[:,1]> r_range_low
+        ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
+        ratio_mat=ratio_mat[ratio_range_idx]
+        pre_vec=pre_vec[ratio_range_idx]
+        
+  
     
-    id_matrix = np.eye(ratio_mat_final.shape[1])
-    id_matrix[0,0] = 0
+    id_matrix = np.eye(ratio_mat.shape[1])
+    #id_matrix[0,0] = 0
 
     
 
@@ -99,16 +102,24 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low, tr
     for k in range(sorted_y.shape[0]):
         pre_vec[k,0]= np.mean(sorted_y[:(k+1)])
     
+    
     pre_vec_used=pre_vec[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up):step]
     
-    ratio_range_idx_up = ratio_mat_used[:,1]< r_range_up
-    ratio_range_idx_low  = ratio_mat_used[:,1]> r_range_low
-    ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
-    ratio_mat_final=ratio_mat_used[ratio_range_idx]
-    pre_vec_final=pre_vec_used[ratio_range_idx]
+    if order != 0:
+        
+        ratio_range_idx_up = ratio_mat_used[:,1]< r_range_up
+        ratio_range_idx_low  = ratio_mat_used[:,1]> r_range_low
+        ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
+        ratio_mat_final=ratio_mat_used[ratio_range_idx]
+        pre_vec_final=pre_vec_used[ratio_range_idx]
+        
+    else:
+        
+        ratio_mat_final=ratio_mat_used
+        pre_vec_final=pre_vec_used
     
     id_matrix = np.eye(ratio_mat_final.shape[1])
-    id_matrix[0,0] = 0
+    #id_matrix[0,0] = 0
 
     return (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final+ id_matrix*lamda) @ ratio_mat_final.T @ pre_vec_final )[0,0]
    
@@ -182,17 +193,24 @@ def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_r
     
     pre_vec_used=pre_vec[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up):step]
     
-    ratio_range_idx_up = ratio_mat_used[:,1]< r_range_up
-    ratio_range_idx_low  = ratio_mat_used[:,1]> r_range_low
-    ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
-    ratio_mat_final=ratio_mat_used[ratio_range_idx]
-    pre_vec_final=pre_vec_used[ratio_range_idx]
+    if order != 0:
+        
+        ratio_range_idx_up = ratio_mat_used[:,1]< r_range_up
+        ratio_range_idx_low  = ratio_mat_used[:,1]> r_range_low
+        ratio_range_idx = ratio_range_idx_up*ratio_range_idx_low
+        ratio_mat_final=ratio_mat_used[ratio_range_idx]
+        pre_vec_final=pre_vec_used[ratio_range_idx]
+        
+    else:
+        
+        ratio_mat_final=ratio_mat_used
+        pre_vec_final=pre_vec_used
     
 
     id_matrix = np.eye(ratio_mat_final.shape[1])
-    id_matrix[0,0] = 0
+    #id_matrix[0,0] = 0
 
-    return sorted_ratio, pre_vec,  (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final+ id_matrix*lamda) @ ratio_mat_final.T @ pre_vec_final )[0,0], ratio_mat_final.shape[0] - (ratio_mat_final[:,1:] @ np.linalg.inv(ratio_mat_final[:,1:].T @ ratio_mat_final[:,1:]) @ ratio_mat_final[:,1:].T  ).sum()
+    return sorted_ratio, pre_vec,  (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final+ id_matrix*lamda) @ ratio_mat_final.T @ pre_vec_final )[0,0], ratio_mat_final @ np.linalg.inv(ratio_mat_final.T @ ratio_mat_final) @ ratio_mat_final.T  
     
     
     
