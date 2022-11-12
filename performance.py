@@ -15,7 +15,7 @@ import os
 
 
 
-distribution_index_vec=[2]
+distribution_index_vec=[1,2,3,4,5,6,7,8]
 repeat_time=5
 
 
@@ -40,9 +40,12 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
         
         # RTER 
         time_start=time()
-        parameters={"truncate_ratio_low":[0,0.1], "truncate_ratio_up":[0.5,0.8 ],"min_samples_split":[10], 
-                    "max_depth":[1,3], "order":[1,2],"splitter":["maxedge"],"step":[1,2,5],
-                    "lamda":[0.01,0.05,0.1]}
+        parameters={"truncate_ratio_low":[0], "truncate_ratio_up":[0.4,0.6,0.8 ],
+           "min_samples_split":[10,30], "max_depth":[1,2,4,6],
+           "order":[0,1,3,6],"splitter":["varreduction"],
+            "estimator":["pointwise_extrapolation_estimator"],
+           "r_range_low":[0],"r_range_up":[1],
+           "step":[1,2,4,8],"lamda":[0.001,0.01,0.1,1,5]}
         cv_model_RTER=GridSearchCV(estimator=RegressionTree(min_samples_split=30, max_depth=3,parallel_jobs=0),param_grid=parameters, cv=3, n_jobs=-1)
         cv_model_RTER.fit(X_train, Y_train)
         RTER_model = cv_model_RTER.best_estimator_

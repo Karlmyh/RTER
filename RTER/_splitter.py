@@ -50,16 +50,17 @@ class VarianceReductionSplitter(object):
         n_node_samples, dim = X.shape
         
         
-        max_mse = 0
+        max_mse = np.inf
         split_dim = None
         split_point = None
         
         for d in range(dim):
             check_mse, check_split_point = compute_variace_dim(X[:,d],dt_Y)
-            if check_mse > max_mse:
+            if check_mse < max_mse:
+              
                 max_mse = check_mse
                 split_dim = d
                 split_point = check_split_point
                 
-            
+
         return split_dim, split_point

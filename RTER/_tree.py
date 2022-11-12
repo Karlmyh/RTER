@@ -163,7 +163,7 @@ class RecursiveTreeBuilder(object):
                     is_leaf = False
             # we will apply splits in non-leaf nodes
             if not is_leaf:
-                rd_dim, rd_split = self.splitter(dt_X, node_range)
+                rd_dim, rd_split = self.splitter(dt_X, node_range,dt_Y)
                 node_id = tree._add_node(parent, is_left, is_leaf, rd_dim, rd_split, n_node_samples, node_range)
             else:
                 node_id = tree._add_node(parent, is_left, is_leaf, None, None, n_node_samples, node_range)

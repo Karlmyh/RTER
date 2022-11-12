@@ -120,8 +120,15 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low, tr
     
     id_matrix = np.eye(ratio_mat_final.shape[1])
     #id_matrix[0,0] = 0
+    
+    ratio_mat_final_T = np.ascontiguousarray(ratio_mat_final.T)
+    ratio_mat_final = np.ascontiguousarray(ratio_mat_final)
+    RTR = np.ascontiguousarray(ratio_mat_final_T @ ratio_mat_final+ id_matrix*lamda)
+    RTR_inv = np.ascontiguousarray(np.linalg.inv(RTR))
+    pre_vec_final = np.ascontiguousarray(pre_vec_final)
+    
 
-    return (np.linalg.inv(ratio_mat_final.T @ ratio_mat_final+ id_matrix*lamda) @ ratio_mat_final.T @ pre_vec_final )[0,0]
+    return (RTR_inv @ ratio_mat_final_T @ pre_vec_final )[0,0]
    
     
     
@@ -216,12 +223,12 @@ def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_r
     
     
   
-    
+@njit    
 def insample_ssq(y):
     return np.var(y)*len(y)
     
     
-    
+@njit  
 def compute_variace_dim(dt_X_dim, dt_Y):
     
     
@@ -230,7 +237,7 @@ def compute_variace_dim(dt_X_dim, dt_Y):
     num_samples = len(sorted_X)
     
     split_point = 0
-    mse = 0 
+    mse = np.inf
     
     for i in range(num_samples- 1):
         
@@ -238,7 +245,7 @@ def compute_variace_dim(dt_X_dim, dt_Y):
         
         check_mse = insample_ssq(dt_Y[dt_X_dim<check_split])+insample_ssq(dt_Y[dt_X_dim>=check_split])
     
-        if check_mse > mse:
+        if check_mse < mse:
             split_point = check_split
             mse = check_mse
     

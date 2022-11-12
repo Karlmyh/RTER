@@ -46,6 +46,18 @@ def f_7(x):
 def f_8(x):
     return np.abs(np.sin(np.pi*2*x[0]))*np.abs(np.sin(np.pi*2*x[1]))
 
+def f_9(x):
+    if int(x[0]*4) % 2 == 0:
+        if int(x[1]*4) % 2 == 0:
+            return -3
+        else:
+            return -10
+    else:
+        if int(x[1]*4) % 2 == 0:
+            return 8
+        else:
+            return 2
+
 class TestDistribution(object):
     def __init__(self,index,dim="auto"):
         self.dim=dim
@@ -142,6 +154,19 @@ class TestDistribution(object):
         
      
         return JointDistribution(marginal_obj, regression_obj, noise_obj)
+    
+    def testDistribution_9(self):
+        if self.dim == "auto":
+            self.dim = 2
+        assert self.dim == 2
+        
+        marginal_obj = UniformDistribution(np.zeros(self.dim),np.ones(self.dim))
+        regression_obj = RegressionFunction(f_9, self.dim)
+        noise_obj = GaussianNoise(1)
+        
+     
+        return JointDistribution(marginal_obj, regression_obj, noise_obj)
+   
    
     
     def returnDistribution(self):
@@ -153,6 +178,7 @@ class TestDistribution(object):
                   '6': self.testDistribution_6, 
                   '7': self.testDistribution_7,
                   '8': self.testDistribution_8,
+                  '9': self.testDistribution_9,
           }
 
         choice = str(self.index)  
