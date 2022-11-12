@@ -162,7 +162,7 @@ class TestDistribution(object):
         
         marginal_obj = UniformDistribution(np.zeros(self.dim),np.ones(self.dim))
         regression_obj = RegressionFunction(f_9, self.dim)
-        noise_obj = GaussianNoise(1)
+        noise_obj = GaussianNoise(0.1)
         
      
         return JointDistribution(marginal_obj, regression_obj, noise_obj)
