@@ -1,5 +1,6 @@
 import numpy as np
 from multiprocessing import Pool
+from ._utils import assign_parallel_jobs
 
 _TREE_LEAF = -1
 _TREE_UNDEFINED = -2
@@ -80,7 +81,7 @@ class TreeStruct(object):
             result_nodeid[i] = node_id
         return  result_nodeid  
     
-    def predict(self, X, numba_acc=0):
+    def predict(self, X, numba_acc=1):
         node_affi = self.apply(X)
         y_predict_hat = np.zeros(X.shape[0])
         for leaf_id in self.leaf_ids:
@@ -100,7 +101,7 @@ class TreeStruct(object):
         else:
             njobs = parallel_jobs
         with Pool(njobs) as p:
-            result= p.map(f,[ (leaf_id, self.leafnode_fun[leaf_id], X[node_affi == leaf_id],numba_acc) for leaf_id in self.leaf_ids] )
+            result= p.map(assign_parallel_jobs,[ (leaf_id, self.leafnode_fun[leaf_id], X[node_affi == leaf_id],numba_acc) for leaf_id in self.leaf_ids] )
 
         for return_vec in result:
             idx = node_affi == return_vec[0]
@@ -109,16 +110,12 @@ class TreeStruct(object):
         return y_predict_hat
     
     
-def f(input_tuple):
-    idx, node_object, X, numba_acc =input_tuple
-    return idx, node_object.predict(X, numba_acc=numba_acc)
 
 class RecursiveTreeBuilder(object):
     def __init__(self, splitter, 
                  Estimator, 
                  min_samples_split, 
                  max_depth,order,
-                 polynomial_output,
                  truncate_ratio_low,
                  truncate_ratio_up,
                  step,
@@ -133,7 +130,6 @@ class RecursiveTreeBuilder(object):
         self.min_samples_split = min_samples_split
         self.max_depth = max_depth
         self.order=order
-        self.polynomial_output=polynomial_output
         self.truncate_ratio_low=truncate_ratio_low
         self.truncate_ratio_up=truncate_ratio_up      
         self.r_range_up=r_range_up
@@ -149,7 +145,7 @@ class RecursiveTreeBuilder(object):
             dt_X, dt_Y, node_range, parent, is_left, depth = stack.pop()
             n_node_samples = dt_X.shape[0]
             # judge whether dt should be splitted or not
-            if n_node_samples == 0:
+            if n_node_samples <= 2:
                 is_leaf = True
             else:
                 #print(np.hstack([dt_X,dt_Y.reshape(-1,1)]))
@@ -161,9 +157,15 @@ class RecursiveTreeBuilder(object):
                     is_leaf = True
                 else:
                     is_leaf = False
+                    
+                rd_dim, rd_split = self.splitter(dt_X, node_range,dt_Y)
+                ## pruning when the sub nodes contains few samples
+                if (dt_X[:,rd_dim] >= rd_split).sum() < self.min_samples_split or (dt_X[:,rd_dim] < rd_split).sum() < self.min_samples_split:
+                    if_leaf = True
+                    
+                    
             # we will apply splits in non-leaf nodes
             if not is_leaf:
-                rd_dim, rd_split = self.splitter(dt_X, node_range,dt_Y)
                 node_id = tree._add_node(parent, is_left, is_leaf, rd_dim, rd_split, n_node_samples, node_range)
             else:
                 node_id = tree._add_node(parent, is_left, is_leaf, None, None, n_node_samples, node_range)
@@ -174,7 +176,6 @@ class RecursiveTreeBuilder(object):
                                                             dt_X, 
                                                             dt_Y,
                                                             self.order,
-                                                            self.polynomial_output,
                                                             self.truncate_ratio_low,
                                                             self.truncate_ratio_up,
                                                             self.step,

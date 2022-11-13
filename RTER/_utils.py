@@ -1,6 +1,12 @@
 from numba import njit
 import numpy as np
 
+def assign_parallel_jobs(input_tuple):
+    idx, node_object, X, numba_acc =input_tuple
+    return idx, node_object.predict(X, numba_acc=numba_acc)
+
+
+
 def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,truncate_ratio_up,r_range_low,r_range_up,step,lamda):
     
     radius = X_range[1,0]- X_range[0,0]
