@@ -37,7 +37,7 @@ class Boosting(object):
 class RegressionTreeBoosting(Boosting):
     def __init__(self, rho=0.1, boost_num=20, splitter="maxedge", estimator="naive_estimator",
                  min_samples_split=2, max_depth=None, log_Xrange=True, random_state=None, order=1,
-                 polynomial_output=0, truncate_ratio_low=0 , truncate_ratio_up=1,numba_acc=1, 
+                 truncate_ratio_low=0 , truncate_ratio_up=1,numba_acc=1, 
                  parallel_jobs=0, r_range_low=0,r_range_up=1):
 
         self.splitter = splitter
@@ -48,7 +48,7 @@ class RegressionTreeBoosting(Boosting):
     
         self.log_Xrange = log_Xrange
         self.random_state = random_state
-        self.polynomial_output=polynomial_output
+       
         self.truncate_ratio_low=truncate_ratio_low
         
         self.truncate_ratio_up=truncate_ratio_up
@@ -61,7 +61,7 @@ class RegressionTreeBoosting(Boosting):
         estimator_fun = RegressionTree
         estimator_kargs = {"splitter":self.splitter, "estimator":self.estimator, "min_samples_split":self.min_samples_split, 
                            "max_depth":self.max_depth,"log_Xrange":self.log_Xrange ,"random_state":self.random_state,
-                           "order":self.order,"polynomial_output":self.polynomial_output,
+                           "order":self.order,
                            "truncate_ratio_low":self.truncate_ratio_low,"truncate_ratio_up":self.truncate_ratio_up,
                            "numba_acc":self.numba_acc,"parallel_jobs":self.parallel_jobs,
                            "r_range_low":self.r_range_low,"r_range_up":self.r_range_up} 
