@@ -55,7 +55,9 @@ class VarianceReductionSplitter(object):
         split_point = None
         
         for d in range(dim):
+            
             check_mse, check_split_point = compute_variace_dim(X[:,d],dt_Y)
+            
             if check_mse < max_mse:
               
                 max_mse = check_mse

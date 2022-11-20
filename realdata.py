@@ -70,7 +70,7 @@ for data_file_name in data_file_name_seq:
         
         # boosting
         time_start=time()
-        parameters={"rho":[0.01,0.05,0.1], "boost_num":[50,100,200], "min_samples_split":[10], "max_depth":[2,5,8],"splitter":["maxedge"]}
+        parameters={"rho":[0.01,0.05,0.1], "boost_num":[50,100,200], "min_samples_split":[10], "max_depth":[2,5,8],"splitter":["varreduction"]}
         cv_model_boosting=GridSearchCV(estimator=RegressionTreeBoosting(),param_grid=parameters, cv=5, n_jobs=-1)
         cv_model_boosting.fit(X_train, y_train)
         boosting_model = cv_model_boosting.best_estimator_
@@ -90,7 +90,7 @@ for data_file_name in data_file_name_seq:
          
         # ensemble
         time_start=time()
-        parameters={ "ensemble_num":[50,100,200], "min_samples_split":[10], "max_depth":[2,5,8],"splitter":["maxedge"]}
+        parameters={ "ensemble_num":[50,100,200], "min_samples_split":[10], "max_depth":[2,5,8],"splitter":["varreduction"]}
         cv_model_ensemble=GridSearchCV(estimator=RegressionTreeEnsemble(),param_grid=parameters, cv=5, n_jobs=-1)
         cv_model_ensemble.fit(X_train, y_train)
         ensemble_model = cv_model_ensemble.best_estimator_
