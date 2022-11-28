@@ -19,9 +19,10 @@ def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,
             positive_len=X_range[1,d]-X_extra[d]
             negative_len=X_extra[d]-X_range[0,d]
             
-            if centralized[d]>=0:
+            if centralized[d]>0:
                 centralized[d]/=positive_len
-            else:
+          
+            elif centralized[d]<0:
                 centralized[d]/=negative_len
         
         ratio_X= np.abs(centralized).max() *radius
@@ -55,6 +56,8 @@ def extrapolation_nonjit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low,
 @njit
 def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low, truncate_ratio_up, r_range_low, r_range_up, step, lamda):
     
+
+
     radius = X_range[1,0]- X_range[0,0]
     n_pts= dt_X.shape[0]
     
@@ -69,10 +72,10 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low, tr
             positive_len=X_range[1,d]-X_extra[d]
             negative_len=X_extra[d]-X_range[0,d]
             
-            if centralized[d]>=0:
+            if centralized[d]>0:
                 
                 centralized[d]/=positive_len
-            else:
+            elif centralized[d]<0:
                 
                 centralized[d]/=negative_len
         
@@ -101,7 +104,7 @@ def extrapolation_jit(dt_X,dt_Y, X_extra, X_range, order, truncate_ratio_low, tr
             
     ratio_mat_used=ratio_mat[int(sorted_ratio.shape[0]*truncate_ratio_low):int(sorted_ratio.shape[0]*truncate_ratio_up):step]
     
-    
+
     
    
     pre_vec=np.zeros((sorted_y.shape[0],1))
@@ -161,10 +164,10 @@ def extrapolation_jit_return_info(dt_X,dt_Y, X_extra, X_range, order, truncate_r
             positive_len=X_range[1,d]-X_extra[d]
             negative_len=X_extra[d]-X_range[0,d]
             
-            if centralized[d]>=0:
+            if centralized[d]>0:
                 #print((centralized[d],positive_len))
                 centralized[d]/=positive_len
-            else:
+            elif centralized[d]<0:
                 #print((centralized[d],negative_len))
                 centralized[d]/=negative_len
         
@@ -237,18 +240,25 @@ def insample_ssq(y):
 @njit  
 def compute_variace_dim(dt_X_dim, dt_Y):
     
+    dt_X_dim_unique = np.unique(dt_X_dim)
     
-    sorted_X = np.sort(dt_X_dim) 
+    if len(dt_X_dim_unique) == 1:
+        return np.inf, 0
     
-    num_samples = len(sorted_X)
+
+    
+    sorted_split_point = np.unique(np.quantile(dt_X_dim_unique,[i/10+0.05 for i in range(10)]))
+    
+    num_unique_split = len(sorted_split_point)
     
     split_point = 0
     mse = np.inf
     
-    for i in range(num_samples- 1):
+    for i in range(num_unique_split- 1):
         
         check_split = (sorted_X[i]+sorted_X[i+1])/2
         
+
         check_mse = insample_ssq(dt_Y[dt_X_dim<check_split])+insample_ssq(dt_Y[dt_X_dim>=check_split])
     
         if check_mse < mse:

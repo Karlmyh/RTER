@@ -245,21 +245,20 @@ def compute_variace_dim(dt_X_dim, dt_Y):
     if len(dt_X_dim_unique) == 1:
         return np.inf, 0
     
-    sorted_X = np.sort(dt_X_dim_unique) 
+
     
-    num_unique_samples = len(sorted_X)
+    sorted_split_point = np.unique(np.quantile(dt_X_dim_unique,[i/10+0.05 for i in range(10)]))
+    
+    num_unique_split = len(sorted_split_point)
     
     split_point = 0
     mse = np.inf
     
-    for i in range(num_unique_samples- 1):
+    for i in range(num_unique_split- 1):
         
-        check_split = (sorted_X[i]+sorted_X[i+1])/2
+        check_split = (sorted_split_point[i]+sorted_split_point[i+1])/2
         
-        if len(dt_Y[dt_X_dim<check_split])==0:
-            print(dt_Y)
-            print((dt_X_dim<check_split).sum())
-            print("check dtY")
+
         check_mse = insample_ssq(dt_Y[dt_X_dim<check_split])+insample_ssq(dt_Y[dt_X_dim>=check_split])
     
         if check_mse < mse:

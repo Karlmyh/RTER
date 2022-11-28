@@ -1,17 +1,19 @@
-from distribution import TestDistribution
+import numpy as np
+from time import time
+import os
 
+from distribution import TestDistribution
 from RTER import RegressionTree
 from comparison.ensemble import RegressionTreeBoosting, RegressionTreeEnsemble
 from comparison.EKNN import EKNN
 
-import numpy as np
 
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
 
-from time import time
-import os
+
 
 
 
@@ -33,7 +35,7 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
 
 
         sample_generator=TestDistribution(distribution_index).returnDistribution()
-        n_test, n_train = 3000,3000
+        n_test, n_train = 2000,1000
         X_train, Y_train = sample_generator.generate(n_train)
         X_test, Y_test = sample_generator.generate(n_test)
 
@@ -141,7 +143,28 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
             f.writelines(logs)
             
             
-        '''   
+        # DT
+        time_start=time()
+        parameters = {"max_depth":[2,5,8]}
+        cv_model_DT = GridSearchCV(estimator=DecisionTreeRegressor(),param_grid=parameters, cv=5, n_jobs=-1) 
+        cv_model_DT.fit(X_train, Y_train)
+        model_DT = cv_model_DT.best_estimator_
+        model_DT.fit(X_train, Y_train)
+        y_hat=model_DT.predict(X_test)
+        mse_score = MSE(y_hat, Y_test)
+        time_end=time()
+    
+        log_file_name = "{}.csv".format("DT")
+        log_file_path = os.path.join(log_file_dir, log_file_name)
+        
+        with open(log_file_path, "a") as f:
+            logs= "{},{},{},{},{},{}\n".format(distribution_index,
+                                          mse_score, time_end-time_start,
+                                          iterate,n_train,n_test)
+            f.writelines(logs)
+            
+        
+
         # EKNN
         time_start=time()
         parameters = {"V":[4,8,12,16], "C":[1,3,5,7,9,11],"alpha":[0.01,0.05,0.1]}
@@ -161,5 +184,4 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
                                           mse_score, time_end-time_start,
                                           iterate,n_train,n_test)
             f.writelines(logs)
-        
-        '''  
+ 

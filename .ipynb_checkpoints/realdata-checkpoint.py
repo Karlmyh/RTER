@@ -22,7 +22,7 @@ from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 
 data_file_dir = "./data/real_data_cleaned/"
 
-data_file_name_seq = ["abalone.csv", "bodyfat_scale.csv","housing_scale.csv","mg_scale.csv","mpg_scale.csv"]
+data_file_name_seq = ["abalone.csv", "bodyfat_scale.csv"]
 
 log_file_dir = "./results/realdata/"
 
@@ -33,14 +33,11 @@ for data_file_name in data_file_name_seq:
     data_file_path = os.path.join(data_file_dir, data_file_name)
     data = pd.read_csv(data_file_path)
     data = np.array(data)
-    
-    X = data[:,1:]
-    y = data[:,0]
-    
     scaler = MinMaxScaler()
-    X = scaler.fit_transform(X)
+    data = scaler.fit_transform(data)
     
-    
+    X = data[:,:-1]
+    y = data[:,-1]
     
     
    
