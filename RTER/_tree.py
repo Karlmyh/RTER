@@ -158,10 +158,13 @@ class RecursiveTreeBuilder(object):
                 else:
                     is_leaf = False
                     
-                rd_dim, rd_split = self.splitter(dt_X, node_range,dt_Y)
-                ## pruning when the sub nodes contains few samples
-                if (dt_X[:,rd_dim] >= rd_split).sum() < self.min_samples_split or (dt_X[:,rd_dim] < rd_split).sum() < self.min_samples_split:
-                    if_leaf = True
+                    rd_dim, rd_split = self.splitter(dt_X, node_range,dt_Y)
+                    ## pruning when the sub nodes contains few samples
+                    if (dt_X[:,rd_dim] >= rd_split).sum() < self.min_samples_split or (dt_X[:,rd_dim] < rd_split).sum() < self.min_samples_split:
+                        if_leaf = True
+                    
+                
+               
                     
                     
             # we will apply splits in non-leaf nodes

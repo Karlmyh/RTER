@@ -64,5 +64,6 @@ class VarianceReductionSplitter(object):
                 split_dim = d
                 split_point = check_split_point
                 
-
+        if split_point is None:
+            print([X,X_range,dt_Y])
         return split_dim, split_point
