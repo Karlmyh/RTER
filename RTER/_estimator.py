@@ -99,19 +99,45 @@ class PointwiseExtrapolationEstimator(object):
         pre_vec=[]
         for X in test_X:
             if numba_acc:
-                pre_vec.append(extrapolation_jit(self.dt_X,self.dt_Y, 
+                pred_y,_,_,_,_,_,_ = extrapolation_jit(self.dt_X,self.dt_Y, 
                                                   X, self.X_range, self.order,
                                                   self.truncate_ratio_low,self.truncate_ratio_up,
                                                   self.r_range_low,self.r_range_up,self.step,
-                                                  self.step_size,self.lamda))
+                                                  self.step_size,self.lamda)
+                pre_vec.append(pred_y)
             else:
-                pre_vec.append(extrapolation_nonjit(self.dt_X,self.dt_Y, 
+                pred_y  = extrapolation_nonjit(self.dt_X,self.dt_Y, 
                                                   X, self.X_range, self.order,
                                                   self.truncate_ratio_low,self.truncate_ratio_up,
                                                   self.r_range_low,self.r_range_up,self.step,
-                                                  self.step_size,self.lamda))
+                                                  self.step_size,self.lamda)
+                pre_vec.append(pred_y)
 
         y_predict=np.array(pre_vec)
        
         
         return y_predict
+    
+    def get_info(self, x ,numba_acc=0):
+        
+        assert len(x.shape) == 2
+        x = x.ravel()
+        
+    
+    
+        
+
+        if numba_acc:
+            pred_y, all_r , all_y_hat , filtered_ratio_r, filtered_ratio_y_hat  , used_r, used_y_hat = extrapolation_jit(self.dt_X,self.dt_Y, 
+                                              x, self.X_range, self.order,
+                                              self.truncate_ratio_low,self.truncate_ratio_up,
+                                              self.r_range_low,self.r_range_up,self.step,
+                                              self.step_size,self.lamda)
+           
+        else:
+            raise ValueError
+
+        
+       
+        
+        return pred_y, all_r , all_y_hat , filtered_ratio_r, filtered_ratio_y_hat  , used_r, used_y_hat

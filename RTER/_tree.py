@@ -95,6 +95,14 @@ class TreeStruct(object):
             
         return y_predict_hat
     
+    def get_info(self, x, numba_acc=1):
+        
+        assert len(x.shape) == 2
+        node_affi = self.apply(x)[0]
+        
+        return self.leafnode_fun[node_affi].get_info(x, numba_acc=numba_acc)
+       
+    
     def predict_parallel(self, X, numba_acc,parallel_jobs):
         node_affi = self.apply(X)
         y_predict_hat = np.zeros(X.shape[0])
@@ -163,7 +171,7 @@ class RecursiveTreeBuilder(object):
                     rd_dim, rd_split = self.splitter(dt_X, node_range,dt_Y)
                     ## pruning when the sub nodes contains few samples
                     if (dt_X[:,rd_dim] >= rd_split).sum() < self.min_samples_split or (dt_X[:,rd_dim] < rd_split).sum() < self.min_samples_split:
-                        if_leaf = True
+                        is_leaf = True
                     else:
                         is_leaf = False
                     

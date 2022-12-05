@@ -4,7 +4,7 @@ from sklearn.metrics import mean_squared_error as MSE
 from ._tree import TreeStruct, RecursiveTreeBuilder
 from ._splitter import PurelyRandomSplitter,MidPointRandomSplitter, MaxEdgeRandomSplitter, VarianceReductionSplitter
 from ._estimator import NaiveEstimator,PointwiseExtrapolationEstimator
-from ._utils import extrapolation_jit_return_info
+
 
 
 SPLITTERS = {"purely": PurelyRandomSplitter,"midpoint":MidPointRandomSplitter, "maxedge":MaxEdgeRandomSplitter, "varreduction":VarianceReductionSplitter}
@@ -77,6 +77,10 @@ class BaseRecursiveTree(object):
         builder.build(self.tree_, X, Y,X_range)
     def apply(self, X):
         return self.tree_.apply(X)
+    
+    def get_info(self,x):
+        return self.tree_.get_info(x)
+    
     def predict(self, X):
         if self.parallel_jobs != 0:
             #print("we are using parallel computing!")
@@ -117,7 +121,7 @@ class RegressionTree(BaseRecursiveTree):
     
     
     
-    
+    '''
     def get_node_information(self,node_idx,pt_idx):
 
         querying_object=list(self.tree_.leafnode_fun.values())[node_idx]
@@ -137,6 +141,17 @@ class RegressionTree(BaseRecursiveTree):
     
     def get_node_extrapolation(self,dt_X, dt_Y, X_extra, X_range, order, low, up,r_low,r_up,step,lamda):
         return extrapolation_jit_return_info(dt_X, dt_Y, X_extra, X_range, order, low, up, r_low,r_up,step,lamda)
+    
+    '''
+    
+    def get_node_idx(self,X):
+        return self.apply(X)
+    
+    def get_node(self,X):
+        return [self.tree_.leafnode_fun[i] for i in self.get_node_idx(X)]
+    
+    def get_all_node(self):
+        return list(self.tree_.leafnode_fun.values())
 
     
     def get_params(self, deep=True):
