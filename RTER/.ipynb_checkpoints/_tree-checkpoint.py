@@ -31,7 +31,8 @@ class TreeStruct(object):
         self.threshold.append(None)
         self.n_node_samples.append(None) 
         if self.log_Xrange == True:
-            self.node_range.append(None)        
+            self.node_range.append(None)  
+            
     def _add_node(self, parent, is_left, is_leaf, feature, threshold, n_node_samples, node_range=None):
         self._node_append()
         node_id = self.node_count
@@ -57,6 +58,7 @@ class TreeStruct(object):
             self.threshold[node_id] = threshold
         self.node_count += 1
         return node_id
+    
     def _node_info_to_ndarray(self):
         self.left_child = np.array(self.left_child, dtype=np.int32)
         self.right_child = np.array(self.right_child, dtype=np.int32)
@@ -66,8 +68,10 @@ class TreeStruct(object):
         self.leaf_ids = np.array(self.leaf_ids, dtype=np.int32)
         if self.log_Xrange == True:
             self.node_range = np.array(self.node_range, dtype=np.float64)
+            
     def apply(self, X):
         return self._apply_dense(X)
+    
     def _apply_dense(self, X):
         n = X.shape[0]
         result_nodeid = np.zeros(n, dtype=np.int32)
@@ -81,17 +85,25 @@ class TreeStruct(object):
             result_nodeid[i] = node_id
         return  result_nodeid  
     
-    def predict(self, X, numba_acc=1):
+    def predict(self, X, index_by_r=1):
         node_affi = self.apply(X)
         y_predict_hat = np.zeros(X.shape[0])
         for leaf_id in self.leaf_ids:
             idx = node_affi == leaf_id
             
-            y_predict_hat[idx] = self.leafnode_fun[leaf_id].predict(X[idx], numba_acc=numba_acc)
+            y_predict_hat[idx] = self.leafnode_fun[leaf_id].predict(X[idx], index_by_r=index_by_r)
             
         return y_predict_hat
     
-    def predict_parallel(self, X, numba_acc,parallel_jobs):
+    def get_info(self, x, index_by_r=1):
+        
+        assert len(x.shape) == 2
+        node_affi = self.apply(x)[0]
+        
+        return self.leafnode_fun[node_affi].get_info(x, index_by_r=index_by_r)
+       
+    
+    def predict_parallel(self, X, index_by_r,parallel_jobs):
         node_affi = self.apply(X)
         y_predict_hat = np.zeros(X.shape[0])
         
@@ -101,7 +113,7 @@ class TreeStruct(object):
         else:
             njobs = parallel_jobs
         with Pool(njobs) as p:
-            result= p.map(assign_parallel_jobs,[ (leaf_id, self.leafnode_fun[leaf_id], X[node_affi == leaf_id],numba_acc) for leaf_id in self.leaf_ids] )
+            result= p.map(assign_parallel_jobs,[ (leaf_id, self.leafnode_fun[leaf_id], X[node_affi == leaf_id],index_by_r) for leaf_id in self.leaf_ids] )
 
         for return_vec in result:
             idx = node_affi == return_vec[0]
@@ -119,6 +131,7 @@ class RecursiveTreeBuilder(object):
                  truncate_ratio_low,
                  truncate_ratio_up,
                  step,
+                 V,
                 r_range_up,
                 r_range_low,
                 lamda):
@@ -135,6 +148,7 @@ class RecursiveTreeBuilder(object):
         self.r_range_up=r_range_up
         self.r_range_low = r_range_low
         self.step = step
+        self.V = V
         self.lamda = lamda
     def build(self, tree, X, Y, X_range=None):
         num_samples = X.shape[0]
@@ -145,23 +159,24 @@ class RecursiveTreeBuilder(object):
             dt_X, dt_Y, node_range, parent, is_left, depth = stack.pop()
             n_node_samples = dt_X.shape[0]
             # judge whether dt should be splitted or not
-            if n_node_samples <= 2:
+            if n_node_samples <= self.min_samples_split:
                 is_leaf = True
             else:
-                #print(np.hstack([dt_X,dt_Y.reshape(-1,1)]))
-                #print("haha")
-                #print(np.unique(np.hstack([dt_X,dt_Y.reshape(-1,1)]), axis=0).shape[0])
-                #print("huhu")
+      
                 n_node_unique_samples = np.unique(np.hstack([dt_X,dt_Y.reshape(-1,1)]), axis=0).shape[0]
+                
                 if depth >= self.max_depth or n_node_unique_samples <= self.min_samples_split:
                     is_leaf = True
                 else:
-                    is_leaf = False
+                    rd_dim, rd_split = self.splitter(dt_X, node_range,dt_Y)
+                    ## pruning when the sub nodes contains few samples
+                    if (dt_X[:,rd_dim] >= rd_split).sum() < self.min_samples_split or (dt_X[:,rd_dim] < rd_split).sum() < self.min_samples_split:
+                        is_leaf = True
+                    else:
+                        is_leaf = False
                     
-                rd_dim, rd_split = self.splitter(dt_X, node_range,dt_Y)
-                ## pruning when the sub nodes contains few samples
-                if (dt_X[:,rd_dim] >= rd_split).sum() < self.min_samples_split or (dt_X[:,rd_dim] < rd_split).sum() < self.min_samples_split:
-                    if_leaf = True
+                
+               
                     
                     
             # we will apply splits in non-leaf nodes
@@ -179,6 +194,7 @@ class RecursiveTreeBuilder(object):
                                                             self.truncate_ratio_low,
                                                             self.truncate_ratio_up,
                                                             self.step,
+                                                            self.V,
                                                             self.r_range_up, 
                                                             self.r_range_low,
                                                             self.lamda
@@ -195,21 +211,20 @@ class RecursiveTreeBuilder(object):
                     node_range_left[1, rd_dim] = rd_split
                 else:
                     node_range_right = node_range_left = None
+                    
                 # push right child on stack
                 right_idx = dt_X[:,rd_dim] >= rd_split
                 dt_X_right = dt_X[right_idx]
                 dt_Y_right = dt_Y[right_idx]
-                
-                
-                
                 stack.append([dt_X_right, dt_Y_right , node_range_right, node_id, False, depth+1])
+                
                 # Push left child on stack
                 left_idx = ~right_idx
                 dt_X_left = dt_X[left_idx]
                 dt_Y_left= dt_Y[left_idx]
                 stack.append([dt_X_left, dt_Y_left, node_range_left, node_id, True, depth+1])
                 
-                #print([(x>=node_range_left[0]).all() for x in dt_X[left_idx]])
+               
                 
         tree._node_info_to_ndarray()
         

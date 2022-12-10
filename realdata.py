@@ -22,7 +22,7 @@ from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 
 data_file_dir = "./data/real_data_cleaned/"
 
-data_file_name_seq = ["abalone.csv","space_ga_scale.csv","triazines_scale.csv",  "bodyfat_scale.csv","housing_scale.csv","mpg_scale.csv"]
+data_file_name_seq = ["space_ga_scale.csv","triazines_scale.csv",  "bodyfat_scale.csv","housing_scale.csv","mpg_scale.csv"]
 
 log_file_dir = "./results/realdata/"
 
@@ -54,12 +54,12 @@ for data_file_name in data_file_name_seq:
         
         
         time_start=time()
-        parameters={"truncate_ratio_low":[0], "truncate_ratio_up":[0.4,0.6,0.8 ],
+        parameters={"truncate_ratio_low":[0], "truncate_ratio_up":[1],
            "min_samples_split":[2,5,10,30], "max_depth":[1,2,4,5],
            "order":[0,1,3,6],"splitter":["varreduction"],
             "estimator":["pointwise_extrapolation_estimator"],
-           "r_range_low":[0],"r_range_up":[1],
-           "step":[1,2],"lamda":[0.001,0.01,0.1,1,5]}
+           "r_range_low":[0,0.1],"r_range_up":[0.4,0.6,0.8,1],
+           "step":[1],"lamda":[0.001,0.01,0.1,1,5],"V":[3,7,11,15,20,25]}
         cv_model_RTER=GridSearchCV(estimator=RegressionTree(),param_grid=parameters, cv=3, n_jobs=-1)
         cv_model_RTER.fit(X_train, y_train) ##############
         RTER_model = cv_model_RTER.best_estimator_

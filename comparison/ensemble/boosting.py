@@ -37,7 +37,7 @@ class Boosting(object):
 class RegressionTreeBoosting(Boosting):
     def __init__(self, rho=0.1, boost_num=20, splitter="maxedge", estimator="naive_estimator",
                  min_samples_split=2, max_depth=None, log_Xrange=True, random_state=None, order=1,
-                 truncate_ratio_low=0 , truncate_ratio_up=1,numba_acc=1, 
+                 truncate_ratio_low=0 , truncate_ratio_up=1,index_by_r=1, 
                  parallel_jobs=0, r_range_low=0,r_range_up=1):
 
         self.splitter = splitter
@@ -52,7 +52,7 @@ class RegressionTreeBoosting(Boosting):
         self.truncate_ratio_low=truncate_ratio_low
         
         self.truncate_ratio_up=truncate_ratio_up
-        self.numba_acc=numba_acc
+        self.index_by_r=index_by_r
         
         self.parallel_jobs = parallel_jobs
         self.r_range_up =r_range_up
@@ -63,7 +63,7 @@ class RegressionTreeBoosting(Boosting):
                            "max_depth":self.max_depth,"log_Xrange":self.log_Xrange ,"random_state":self.random_state,
                            "order":self.order,
                            "truncate_ratio_low":self.truncate_ratio_low,"truncate_ratio_up":self.truncate_ratio_up,
-                           "numba_acc":self.numba_acc,"parallel_jobs":self.parallel_jobs,
+                           "index_by_r":self.index_by_r,"parallel_jobs":self.parallel_jobs,
                            "r_range_low":self.r_range_low,"r_range_up":self.r_range_up} 
         
         super(RegressionTreeBoosting, self).__init__(estimator_fun=estimator_fun,  estimator_kargs =estimator_kargs, boost_num = boost_num, rho =rho )

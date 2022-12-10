@@ -22,7 +22,7 @@ from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 
 data_file_dir = "./data/real_data_cleaned/"
 
-data_file_name_seq = ["abalone.csv", "bodyfat_scale.csv"]
+data_file_name_seq = ["abalone.csv","space_ga_scale.csv","triazines_scale.csv",  "bodyfat_scale.csv","housing_scale.csv","mpg_scale.csv"]
 
 log_file_dir = "./results/realdata/"
 
@@ -33,11 +33,14 @@ for data_file_name in data_file_name_seq:
     data_file_path = os.path.join(data_file_dir, data_file_name)
     data = pd.read_csv(data_file_path)
     data = np.array(data)
-    scaler = MinMaxScaler()
-    data = scaler.fit_transform(data)
     
-    X = data[:,:-1]
-    y = data[:,-1]
+    X = data[:,1:]
+    y = data[:,0]
+    
+    scaler = MinMaxScaler()
+    X = scaler.fit_transform(X)
+    
+    
     
     
    
@@ -47,17 +50,17 @@ for data_file_name in data_file_name_seq:
         
     for i in range(repeat_times):
         
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=i)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=i+10)
         
         
         time_start=time()
-        parameters={"truncate_ratio_low":[0], "truncate_ratio_up":[0.4,0.6,0.8 ],
-           "min_samples_split":[10,30], "max_depth":[1,2,4,6],
+        parameters={"truncate_ratio_low":[0], "truncate_ratio_up":[1],
+           "min_samples_split":[2,5,10,30], "max_depth":[1,2,4,5],
            "order":[0,1,3,6],"splitter":["varreduction"],
             "estimator":["pointwise_extrapolation_estimator"],
-           "r_range_low":[0],"r_range_up":[1],
-           "step":[1,2,4,8],"lamda":[0.001,0.01,0.1,1,5]}
-        cv_model_RTER=GridSearchCV(estimator=RegressionTree(),param_grid=parameters, cv=5, n_jobs=-1)
+           "r_range_low":[0,0.1,0.2],"r_range_up":[0.4,0.5,0.6,0.7,0.8,0.9,1],
+           "step":[1,2],"lamda":[0.001,0.01,0.1,1,5],"V":[3,5,7,9,12,15,18,25,40]}
+        cv_model_RTER=GridSearchCV(estimator=RegressionTree(),param_grid=parameters, cv=3, n_jobs=-1)
         cv_model_RTER.fit(X_train, y_train) ##############
         RTER_model = cv_model_RTER.best_estimator_
         mse_score=-RTER_model.score(X_test, y_test)

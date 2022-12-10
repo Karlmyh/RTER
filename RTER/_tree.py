@@ -85,25 +85,25 @@ class TreeStruct(object):
             result_nodeid[i] = node_id
         return  result_nodeid  
     
-    def predict(self, X, numba_acc=1):
+    def predict(self, X, index_by_r=1):
         node_affi = self.apply(X)
         y_predict_hat = np.zeros(X.shape[0])
         for leaf_id in self.leaf_ids:
             idx = node_affi == leaf_id
             
-            y_predict_hat[idx] = self.leafnode_fun[leaf_id].predict(X[idx], numba_acc=numba_acc)
+            y_predict_hat[idx] = self.leafnode_fun[leaf_id].predict(X[idx], index_by_r=index_by_r)
             
         return y_predict_hat
     
-    def get_info(self, x, numba_acc=1):
+    def get_info(self, x, index_by_r=1):
         
         assert len(x.shape) == 2
         node_affi = self.apply(x)[0]
         
-        return self.leafnode_fun[node_affi].get_info(x, numba_acc=numba_acc)
+        return self.leafnode_fun[node_affi].get_info(x, index_by_r=index_by_r)
        
     
-    def predict_parallel(self, X, numba_acc,parallel_jobs):
+    def predict_parallel(self, X, index_by_r,parallel_jobs):
         node_affi = self.apply(X)
         y_predict_hat = np.zeros(X.shape[0])
         
@@ -113,7 +113,7 @@ class TreeStruct(object):
         else:
             njobs = parallel_jobs
         with Pool(njobs) as p:
-            result= p.map(assign_parallel_jobs,[ (leaf_id, self.leafnode_fun[leaf_id], X[node_affi == leaf_id],numba_acc) for leaf_id in self.leaf_ids] )
+            result= p.map(assign_parallel_jobs,[ (leaf_id, self.leafnode_fun[leaf_id], X[node_affi == leaf_id],index_by_r) for leaf_id in self.leaf_ids] )
 
         for return_vec in result:
             idx = node_affi == return_vec[0]
@@ -131,7 +131,7 @@ class RecursiveTreeBuilder(object):
                  truncate_ratio_low,
                  truncate_ratio_up,
                  step,
-                 step_size,
+                 V,
                 r_range_up,
                 r_range_low,
                 lamda):
@@ -148,7 +148,7 @@ class RecursiveTreeBuilder(object):
         self.r_range_up=r_range_up
         self.r_range_low = r_range_low
         self.step = step
-        self.step_size = step_size
+        self.V = V
         self.lamda = lamda
     def build(self, tree, X, Y, X_range=None):
         num_samples = X.shape[0]
@@ -194,7 +194,7 @@ class RecursiveTreeBuilder(object):
                                                             self.truncate_ratio_low,
                                                             self.truncate_ratio_up,
                                                             self.step,
-                                                            self.step_size,
+                                                            self.V,
                                                             self.r_range_up, 
                                                             self.r_range_low,
                                                             self.lamda
