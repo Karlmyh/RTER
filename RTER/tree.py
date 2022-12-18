@@ -57,7 +57,8 @@ class BaseRecursiveTree(object):
         order= (10 if self.order is None
                 else self.order)
         if self.min_samples_split < 1:
-            raise ValueError("min_samples_split should be larger than 1, got {}.".format(self.min_samples_split))
+            #raise ValueError("min_samples_split should be larger than 1, got {}.".format(self.min_samples_split))
+            self.min_samples_split = int(self.n_samples*self.min_samples_split)
         # begin
         splitter = SPLITTERS[self.splitter](self.random_state)
         Estimator = ESTIMATORS[self.estimator]

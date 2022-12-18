@@ -24,7 +24,7 @@ def extrapolation_jit(dt_X,
     
 
 
-    radius = (((X_range[1] - X_range[0])**2).sum())**0.5
+    # radius = (((X_range[1] - X_range[0])**2).sum())**0.5
     n_pts = dt_X.shape[0]
     ratio_vec = np.zeros(n_pts)
     
@@ -186,12 +186,12 @@ def extrapolation_jit_index_r(dt_X,
     
     for t in range(V,0,-1):
         if_less_than_r = np.where(sorted_ratio <= t/V)[0]
-        if len(if_less_than_r) == 0:
-            index_by_r[t-1] = index_by_r[t]
+        if len(if_less_than_r) <= 4:
+            index_by_r[t-1] = 0
         else:
             index_by_r[t-1] = if_less_than_r.max()
             
-        
+    index_by_r = index_by_r[index_by_r > 0]    
     index_by_r = np.array([int(i) for i in index_by_r])
 
     pre_vec = pre_vec[index_by_r]
@@ -207,7 +207,7 @@ def extrapolation_jit_index_r(dt_X,
     ratio_mat = np.zeros((sorted_ratio.shape[0], order+1))
     i=0
     while(i < sorted_ratio.shape[0]):
-        r= sorted_ratio[i] * radius
+        r= sorted_ratio[i] #* radius
         
         for j in range(order +1):
             ratio_mat[i,j] = r**j 
