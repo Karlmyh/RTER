@@ -17,7 +17,7 @@ from sklearn.tree import DecisionTreeRegressor
 
 
 
-distribution_index_vec=[1,2,3,4,5,6,7,8]
+distribution_index_vec=[1,2,3,4,5,6,7,8,9]
 repeat_time=5
 
 
@@ -43,12 +43,12 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
         # RTER 
         time_start=time()
         parameters={"truncate_ratio_low":[0], "truncate_ratio_up":[1],
-           "min_samples_split":[10,30], "max_depth":[1,2,4,6],
-           "order":[0,1,3,6],"splitter":["maxedge"],
+           "min_samples_split":[10,30], "max_depth":[1,2,3,4,6],
+           "order":[0,1,2,3,6],"splitter":["maxedge"],
             "estimator":["pointwise_extrapolation_estimator"],
            "r_range_low":[0,0.1],"r_range_up":[0.6,0.8,1],
-           "step":[1],"lamda":[0.001,0.01,0.1,1,5],"V":[3,5,7,9,12,15,20]}
-        cv_model_RTER=GridSearchCV(estimator=RegressionTree(min_samples_split=30, max_depth=3,parallel_jobs=0),param_grid=parameters, cv=3, n_jobs=-1)
+           "step":[1],"lamda":[0.0001,0.001,0.01,0.1,1,5],"V":[3,5,7,9,12,15,20]}
+        cv_model_RTER=GridSearchCV(estimator=RegressionTree(),param_grid=parameters, cv=3, n_jobs=-1)
         cv_model_RTER.fit(X_train, Y_train)
         RTER_model = cv_model_RTER.best_estimator_
         mse_score=-RTER_model.score(X_test, Y_test)
