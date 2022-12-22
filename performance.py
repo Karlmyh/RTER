@@ -44,7 +44,7 @@ for distribution_iter,distribution_index in enumerate(distribution_index_vec):
         time_start=time()
         parameters={"truncate_ratio_low":[0], "truncate_ratio_up":[1],
            "min_samples_split":[10,30], "max_depth":[1,2,4,6],
-           "order":[0,1,3,6],"splitter":["varreduction"],
+           "order":[0,1,3,6],"splitter":["maxedge"],
             "estimator":["pointwise_extrapolation_estimator"],
            "r_range_low":[0,0.1],"r_range_up":[0.6,0.8,1],
            "step":[1],"lamda":[0.001,0.01,0.1,1,5],"V":[3,5,7,9,12,15,20]}
