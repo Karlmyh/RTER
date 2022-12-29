@@ -4,12 +4,12 @@ from sklearn.metrics import mean_squared_error as MSE
 
 class Ensemble(object):
     def __init__(self, 
-                 estimator, 
+                 estimator_class, 
                  estimator_kargs, 
                  n_estimators,
                  max_samples
                  ):
-        self.estimator = estimator
+        self.estimator_class = estimator_class
         self.estimator_kargs = estimator_kargs
         self.n_estimators = n_estimators
         self.max_samples = max_samples
@@ -23,7 +23,7 @@ class Ensemble(object):
             
             bootstrap_idx = np.random.choice(X.shape[0], int(X.shape[0] * self.max_samples))
             
-            self.trees.append(self.estimator(**self.estimator_kargs))
+            self.trees.append(self.estimator_class(**self.estimator_kargs))
             self.trees[i].fit(X[bootstrap_idx] , y[bootstrap_idx])
             
         
@@ -45,10 +45,10 @@ class RegressionTreeEnsemble(Ensemble):
                  index_by_r=1, parallel_jobs=0, r_range_low=0,
                  r_range_up=1,step = 1, V = 0,lamda=0.01, 
                  ):
-        
+
 
         
-        estimator = RegressionTree
+        estimator_class = RegressionTree
         estimator_kargs = {"max_features":max_features, "splitter":splitter, 
                            "estimator":estimator, "min_samples_split":min_samples_split, 
                            "max_depth":max_depth,"log_Xrange":log_Xrange,
@@ -58,7 +58,7 @@ class RegressionTreeEnsemble(Ensemble):
                            "r_range_up":r_range_up, "step":step, "V":V,
                            "lamda":lamda} 
         
-        super(RegressionTreeEnsemble, self).__init__(estimator=estimator,  
+        super(RegressionTreeEnsemble, self).__init__(estimator_class=estimator_class,  
                                                      estimator_kargs = estimator_kargs, 
                                                      n_estimators = n_estimators,
                                                      max_samples = max_samples)
