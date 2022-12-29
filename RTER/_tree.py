@@ -134,8 +134,7 @@ class RecursiveTreeBuilder(object):
                  V,
                 r_range_up,
                 r_range_low,
-                lamda,
-                max_features):
+                lamda):
         # about splitter
         self.splitter = splitter
         # about estimator
