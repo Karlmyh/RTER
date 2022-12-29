@@ -84,8 +84,8 @@ class RegressionTreeEnsemble(Ensemble):
             Parameter names mapped to their values.
         """
         out = dict()
-        for key in [ "n_estimators" ,"min_samples_split", "max_features"
-                    "max_depth","order","truncate_ratio_low", "max_samples"
+        for key in [ "n_estimators" ,"min_samples_split", "max_features",
+                    "max_depth","order","truncate_ratio_low", "max_samples",
                     "truncate_ratio_up","splitter","r_range_low","r_range_up",
                     "step","lamda","estimator","V","max_features"]:
             value = getattr(self, key, None)
