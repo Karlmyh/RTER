@@ -2,72 +2,73 @@ import numpy as np
 from RTER import RegressionTree
 from sklearn.metrics import mean_squared_error as MSE
 
-class Ensemble(object):
-    def __init__(self, 
-                 estimator_class, 
-                 estimator_kargs, 
-                 n_estimators,
-                 max_samples
-                 ):
-        self.estimator_class = estimator_class
-        self.estimator_kargs = estimator_kargs
-        self.n_estimators = n_estimators
-        self.max_samples = max_samples
-        self.trees = []
-        
-        
-    def fit(self, X, y):
-       
-        for i in range(self.n_estimators):
-            self.estimator_kargs["random_state"] = i
-            
-            bootstrap_idx = np.random.choice(X.shape[0], int(X.shape[0] * self.max_samples))
-            
-            self.trees.append(self.estimator_class(**self.estimator_kargs))
-            self.trees[i].fit(X[bootstrap_idx] , y[bootstrap_idx])
-            
-        
-    def predict(self, X):
-        y_hat = np.zeros(X.shape[0])
-        for i in range(self.n_estimators):
-            y_hat +=  self.trees[i].predict(X)
-        y_hat/= self.n_estimators
-        return y_hat
-    
-    
-        
-
-class RegressionTreeEnsemble(Ensemble):
+class RegressionTreeEnsemble(object):
     def __init__(self,  n_estimators = 20, max_features = 1.0, max_samples = 1.0,
                  splitter="maxedge", estimator = "naive_estimator", 
                  min_samples_split=2, max_depth=None, order=1, log_Xrange=True, 
                  random_state=None,truncate_ratio_low=0 , truncate_ratio_up=1,
                  index_by_r=1, parallel_jobs=0, r_range_low=0,
-                 r_range_up=1,step = 1, V = 0,lamda=0.01, 
+                 r_range_up=1,step = 1, V = 0,lamda=0.01 
                  ):
+        
+        self.n_estimators = n_estimators
+        self.max_features = max_features
+        self.max_samples = max_samples
+        self.splitter = splitter
+        self.estimator = estimator
+        self.min_samples_split = min_samples_split
+        self.max_depth = max_depth
+        self.order=order
+        self.step=step
+        self.log_Xrange = log_Xrange
+        self.random_state = random_state
+        self.truncate_ratio_low=truncate_ratio_low
+        
+        self.truncate_ratio_up=truncate_ratio_up
+        self.index_by_r=index_by_r
+        
+        self.parallel_jobs = parallel_jobs
+        self.r_range_up =r_range_up
+        self.r_range_low =r_range_low
+        self.lamda=lamda
+        self.V = V
+        
+        self.trees = []
 
 
-        
-        estimator_class = RegressionTree
-        estimator_kargs = {"max_features":max_features, "splitter":splitter, 
-                           "estimator":estimator, "min_samples_split":min_samples_split, 
-                           "max_depth":max_depth,"log_Xrange":log_Xrange,
-                           "order":order, "truncate_ratio_low":truncate_ratio_low,
-                           "truncate_ratio_up":truncate_ratio_up, "index_by_r":index_by_r,
-                           "parallel_jobs":parallel_jobs, "r_range_low":r_range_low,
-                           "r_range_up":r_range_up, "step":step, "V":V,
-                           "lamda":lamda} 
-        
-        super(RegressionTreeEnsemble, self).__init__(estimator_class=estimator_class,  
-                                                     estimator_kargs = estimator_kargs, 
-                                                     n_estimators = n_estimators,
-                                                     max_samples = max_samples)
+
         
         
+       
         
         
-        
-        
+    def fit(self, X, y):
+       
+        for i in range(self.n_estimators):
+            
+            bootstrap_idx = np.random.choice(X.shape[0], int(X.shape[0] * self.max_samples))
+            
+            
+            
+            self.trees.append(RegressionTree(splitter=self.splitter, 
+                                             estimator=self.estimator, 
+                                             min_samples_split=self.min_samples_split,
+                                             order=self.order, 
+                                             max_depth=self.max_depth, 
+                                             log_Xrange=self.log_Xrange, 
+                                             random_state=self.random_state,
+                                             truncate_ratio_low=self.truncate_ratio_low,
+                                             truncate_ratio_up=self.truncate_ratio_up,
+                                             index_by_r=self.index_by_r,
+                                             parallel_jobs=self.parallel_jobs,
+                                             r_range_low=self.r_range_low,
+                                             r_range_up=self.r_range_up,
+                                             step=self.step,
+                                             V=self.V,
+                                             lamda=self.lamda,
+                                             max_features=self.max_features))
+            
+            self.trees[i].fit(X[bootstrap_idx] , y[bootstrap_idx])
         
     def get_params(self, deep=True):
         """Get parameters for this estimator.
@@ -124,6 +125,13 @@ class RegressionTreeEnsemble(Ensemble):
             valid_params[key] = value
 
         return self
+    
+    def predict(self, X):
+        y_hat = np.zeros(X.shape[0])
+        for i in range(self.n_estimators):
+            y_hat +=  self.trees[i].predict(X)
+        y_hat/= self.n_estimators
+        return y_hat
     
     
     def score(self, X, y):

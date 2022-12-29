@@ -38,7 +38,7 @@ class MaxEdgeRandomSplitter(object):
         n_node_samples, dim = X.shape
         edge_ratio= X_range[1]-X_range[0]
         
-        subsampled_idx = np.random.choice(edge_ratio.shape[0], int(edge_ratio.shape[0]*self.max_features),replace=False)
+        subsampled_idx = np.random.choice(edge_ratio.shape[0], int(np.ceil(edge_ratio.shape[0]*self.max_features)),replace=False)
         
         rd_dim = np.random.choice(np.where(edge_ratio[subsampled_idx]==edge_ratio[subsampled_idx].max())[0])
         #rd_dim = np.random.randint(0, dim)
@@ -56,7 +56,7 @@ class VarianceReductionSplitter(object):
         
     def __call__(self, X, X_range, dt_Y):
         n_node_samples, dim = X.shape
-        subsampled_idx = np.random.choice(dim, int(dim * self.max_features),replace=False)
+        subsampled_idx = np.random.choice(dim, int(np.ceil(dim * self.max_features)),replace=False)
         
         
         max_mse = np.inf
