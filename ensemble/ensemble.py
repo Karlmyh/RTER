@@ -2,6 +2,8 @@ import numpy as np
 from RTER import RegressionTree
 from sklearn.metrics import mean_squared_error as MSE
 
+
+
 class RegressionTreeEnsemble(object):
     def __init__(self,  n_estimators = 20, max_features = 1.0, max_samples = 1.0,
                  splitter="maxedge", estimator = "naive_estimator", 
@@ -35,12 +37,6 @@ class RegressionTreeEnsemble(object):
         
         self.trees = []
 
-
-
-        
-        
-       
-        
         
     def fit(self, X, y):
        
@@ -56,7 +52,7 @@ class RegressionTreeEnsemble(object):
                                              order=self.order, 
                                              max_depth=self.max_depth, 
                                              log_Xrange=self.log_Xrange, 
-                                             random_state=self.random_state,
+                                             random_state=i,
                                              truncate_ratio_low=self.truncate_ratio_low,
                                              truncate_ratio_up=self.truncate_ratio_up,
                                              index_by_r=self.index_by_r,
