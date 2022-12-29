@@ -134,7 +134,8 @@ class RecursiveTreeBuilder(object):
                  V,
                 r_range_up,
                 r_range_low,
-                lamda):
+                lamda,
+                max_features):
         # about splitter
         self.splitter = splitter
         # about estimator
@@ -150,6 +151,8 @@ class RecursiveTreeBuilder(object):
         self.step = step
         self.V = V
         self.lamda = lamda
+
+        
     def build(self, tree, X, Y, X_range=None):
         num_samples = X.shape[0]
         stack = []
@@ -168,7 +171,7 @@ class RecursiveTreeBuilder(object):
                 if depth >= self.max_depth or n_node_unique_samples <= self.min_samples_split:
                     is_leaf = True
                 else:
-                    rd_dim, rd_split = self.splitter(dt_X, node_range,dt_Y)
+                    rd_dim, rd_split = self.splitter(dt_X, node_range , dt_Y )
                     ## pruning when the sub nodes contains few samples
                     if (dt_X[:,rd_dim] >= rd_split).sum() < self.min_samples_split or (dt_X[:,rd_dim] < rd_split).sum() < self.min_samples_split:
                         is_leaf = True

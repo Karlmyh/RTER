@@ -27,7 +27,8 @@ class BaseRecursiveTree(object):
                  V = None,
                  r_range_up=None,
                 r_range_low=None,
-                 lamda=None
+                 lamda=None,
+                 max_features = None
                 ):
         self.splitter = splitter
         self.estimator = estimator
@@ -47,6 +48,7 @@ class BaseRecursiveTree(object):
         self.r_range_low =r_range_low
         self.lamda=lamda
         self.V = V
+        self.max_features = max_features
              
     def fit(self, X, Y,X_range=None):
         self.n_samples, self.n_features = X.shape
@@ -60,7 +62,7 @@ class BaseRecursiveTree(object):
             #raise ValueError("min_samples_split should be larger than 1, got {}.".format(self.min_samples_split))
             self.min_samples_split = int(self.n_samples*self.min_samples_split)
         # begin
-        splitter = SPLITTERS[self.splitter](self.random_state)
+        splitter = SPLITTERS[self.splitter](self.random_state, self.max_features)
         Estimator = ESTIMATORS[self.estimator]
         self.tree_ = TreeStruct(self.n_samples, self.n_features, self.log_Xrange)
         builder = RecursiveTreeBuilder(splitter, 
@@ -91,8 +93,18 @@ class BaseRecursiveTree(object):
 
 
 class RegressionTree(BaseRecursiveTree):
-    def __init__(self, splitter="maxedge", estimator="pointwise_extrapolation_estimator", min_samples_split=2, max_depth=None, order=1, log_Xrange=True, random_state=None,truncate_ratio_low=0 , truncate_ratio_up=1,index_by_r=1,parallel_jobs=0, r_range_low=0,r_range_up=1,step = 1,V = 0,lamda=0.01):
-        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, min_samples_split=min_samples_split,order=order, max_depth=max_depth, log_Xrange=log_Xrange, random_state=random_state,truncate_ratio_low=truncate_ratio_low,truncate_ratio_up=truncate_ratio_up,index_by_r=index_by_r,parallel_jobs=parallel_jobs,r_range_low=r_range_low,r_range_up=r_range_up,step=step,V=V,lamda=lamda)
+    def __init__(self, splitter="maxedge", estimator="pointwise_extrapolation_estimator", min_samples_split=2, 
+                 max_depth=None, order=1, log_Xrange=True, random_state=None,truncate_ratio_low=0 , 
+                 truncate_ratio_up=1,index_by_r=1,parallel_jobs=0, r_range_low=0,r_range_up=1,step = 1,
+                 V = 0,lamda=0.01, max_features = 1.0):
+        super(RegressionTree, self).__init__(splitter=splitter, estimator=estimator, 
+                                             min_samples_split=min_samples_split,order=order, 
+                                             max_depth=max_depth, log_Xrange=log_Xrange, 
+                                             random_state=random_state,truncate_ratio_low=truncate_ratio_low,
+                                             truncate_ratio_up=truncate_ratio_up,index_by_r=index_by_r,
+                                             parallel_jobs=parallel_jobs,r_range_low=r_range_low,
+                                             r_range_up=r_range_up,step=step,V=V,lamda=lamda,
+                                             max_features=max_features)
     def fit(self, X,Y, X_range="unit"):
         self.dim = X.shape[1]
         if X_range == "unit":
