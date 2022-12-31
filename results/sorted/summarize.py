@@ -23,7 +23,7 @@ for method in method_seq:
     summarize_log=summarize_log.append(log)
     
     
-summary = pd.pivot_table(summarize_log, index=["method"],columns=["distribution"], values=[ "mse"], aggfunc=[np.mean, np.std, len])
+summary = pd.pivot_table(summarize_log, index=["method"],columns=["distribution"], values=[ "mse","time"], aggfunc=[np.mean, np.std, len])
 
 summary.to_excel("./accuracy_summary.xlsx")
 

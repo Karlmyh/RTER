@@ -20,11 +20,15 @@ from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 
 
 
+
 data_file_dir = "./data/real_data_cleaned/"
 
 data_file_name_seq = ["space_ga_scale.csv","triazines_scale.csv",  "bodyfat_scale.csv","housing_scale.csv","mpg_scale.csv"]
 
-log_file_dir = "./results/realdata/"
+#data_seq = glob.glob("{}/*.csv".format(log_file_dir))
+#data_file_name_seq = [os.path.split(data)[1] for data in data_seq]
+
+log_file_dir = "./results/realdata_forest/"
 
 
 for data_file_name in data_file_name_seq:
@@ -40,12 +44,7 @@ for data_file_name in data_file_name_seq:
     scaler = MinMaxScaler()
     X = scaler.fit_transform(X)
     
-    
-    
-    
-   
-    
-    
+
     repeat_times = 5
         
     for i in range(repeat_times):
@@ -75,25 +74,7 @@ for data_file_name in data_file_name_seq:
                                           i)
             f.writelines(logs)
         
-        # boosting
-        time_start=time()
-        parameters={"rho":[0.01,0.05,0.1], "boost_num":[50,100,200], "min_samples_split":[10], "max_depth":[2,5,8],"splitter":["varreduction"]}
-        cv_model_boosting=GridSearchCV(estimator=RegressionTreeBoosting(),param_grid=parameters, cv=5, n_jobs=-1)
-        cv_model_boosting.fit(X_train, y_train)
-        boosting_model = cv_model_boosting.best_estimator_
-        mse_score= - boosting_model.score(X_test, y_test)
-        log_file_name = "{}.csv".format("boosting")
-        log_file_path = os.path.join(log_file_dir, log_file_name)
-        time_end=time()
-        
-        log_file_name = "{}.csv".format("boosting")
-        log_file_path = os.path.join(log_file_dir, log_file_name)
-        
-        with open(log_file_path, "a") as f:
-            logs= "{},{},{},{}\n".format(data_name,
-                                          mse_score, time_end-time_start,
-                                          i)
-            f.writelines(logs)
+       
          
         # ensemble
         time_start=time()

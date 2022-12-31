@@ -1,12 +1,18 @@
 import numpy as np
 from RTER import RegressionTree
 from sklearn.metrics import mean_squared_error as MSE
+from multiprocessing import Pool
 
+def single_parallel(input_tuple):
+    tree, X, y, random_state, max_samples = input_tuple
+    np.random.seed(random_state)
+    bootstrap_idx = np.random.choice(X.shape[0], int(np.ceil(X.shape[0] * max_samples)))
+    return tree.fit(X[bootstrap_idx],y[bootstrap_idx])
 
 
 class RegressionTreeEnsemble(object):
     def __init__(self,  n_estimators = 20, max_features = 1.0, max_samples = 1.0,
-                 splitter="maxedge", estimator = "naive_estimator", 
+                 splitter="maxedge", estimator = "naive_estimator", ensemble_parallel = 0,
                  min_samples_split=2, max_depth=None, order=1, log_Xrange=True, 
                  random_state=None,truncate_ratio_low=0 , truncate_ratio_up=1,
                  index_by_r=1, parallel_jobs=0, r_range_low=0,
@@ -34,37 +40,65 @@ class RegressionTreeEnsemble(object):
         self.r_range_low =r_range_low
         self.lamda=lamda
         self.V = V
+        self.ensemble_parallel = ensemble_parallel
         
         self.trees = []
 
         
     def fit(self, X, y):
-       
-        for i in range(self.n_estimators):
+        
+        if self.ensemble_parallel !=0:
+        
+            for i in range(self.n_estimators):
+
+                self.trees.append(RegressionTree(splitter=self.splitter, 
+                                                 estimator=self.estimator, 
+                                                 min_samples_split=self.min_samples_split,
+                                                 order=self.order, 
+                                                 max_depth=self.max_depth, 
+                                                 log_Xrange=self.log_Xrange, 
+                                                 random_state=i,
+                                                 truncate_ratio_low=self.truncate_ratio_low,
+                                                 truncate_ratio_up=self.truncate_ratio_up,
+                                                 index_by_r=self.index_by_r,
+                                                 parallel_jobs=self.parallel_jobs,
+                                                 r_range_low=self.r_range_low,
+                                                 r_range_up=self.r_range_up,
+                                                 step=self.step,
+                                                 V=self.V,
+                                                 lamda=self.lamda,
+                                                 max_features=self.max_features))
+
+            with Pool(min(100,self.n_estimators)) as p:
+                self.trees = p.map(single_parallel, [(self.trees[i],X,y,i,self.max_samples) for i in range(self.n_estimators)])
+                
+                
+        else:
+            for i in range(self.n_estimators):
             
-            bootstrap_idx = np.random.choice(X.shape[0], int(X.shape[0] * self.max_samples))
-            
-            
-            
-            self.trees.append(RegressionTree(splitter=self.splitter, 
-                                             estimator=self.estimator, 
-                                             min_samples_split=self.min_samples_split,
-                                             order=self.order, 
-                                             max_depth=self.max_depth, 
-                                             log_Xrange=self.log_Xrange, 
-                                             random_state=i,
-                                             truncate_ratio_low=self.truncate_ratio_low,
-                                             truncate_ratio_up=self.truncate_ratio_up,
-                                             index_by_r=self.index_by_r,
-                                             parallel_jobs=self.parallel_jobs,
-                                             r_range_low=self.r_range_low,
-                                             r_range_up=self.r_range_up,
-                                             step=self.step,
-                                             V=self.V,
-                                             lamda=self.lamda,
-                                             max_features=self.max_features))
-            
-            self.trees[i].fit(X[bootstrap_idx] , y[bootstrap_idx])
+                bootstrap_idx = np.random.choice(X.shape[0], int(np.ceil(X.shape[0] * self.max_samples)))
+
+
+
+                self.trees.append(RegressionTree(splitter=self.splitter, 
+                                                 estimator=self.estimator, 
+                                                 min_samples_split=self.min_samples_split,
+                                                 order=self.order, 
+                                                 max_depth=self.max_depth, 
+                                                 log_Xrange=self.log_Xrange, 
+                                                 random_state=i,
+                                                 truncate_ratio_low=self.truncate_ratio_low,
+                                                 truncate_ratio_up=self.truncate_ratio_up,
+                                                 index_by_r=self.index_by_r,
+                                                 parallel_jobs=self.parallel_jobs,
+                                                 r_range_low=self.r_range_low,
+                                                 r_range_up=self.r_range_up,
+                                                 step=self.step,
+                                                 V=self.V,
+                                                 lamda=self.lamda,
+                                                 max_features=self.max_features))
+
+                self.trees[i].fit(X[bootstrap_idx] , y[bootstrap_idx])
         
     def get_params(self, deep=True):
         """Get parameters for this estimator.

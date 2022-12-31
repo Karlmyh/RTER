@@ -2,8 +2,8 @@ from numba import njit
 import numpy as np
 
 def assign_parallel_jobs(input_tuple):
-    idx, node_object, X, numba_acc =input_tuple
-    return idx, node_object.predict(X, numba_acc=numba_acc)
+    idx, node_object, X, index_by_r =input_tuple
+    return idx, node_object.predict(X, index_by_r=index_by_r)
 
 
 

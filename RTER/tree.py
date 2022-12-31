@@ -117,6 +117,8 @@ class RegressionTree(BaseRecursiveTree):
         
         super(RegressionTree, self).fit(X,Y,self.X_range)
         
+        return self
+        
     def predict(self, X):
         
         y_hat = super(RegressionTree, self).predict(X)
