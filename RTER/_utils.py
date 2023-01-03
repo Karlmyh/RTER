@@ -100,7 +100,7 @@ def extrapolation_jit(dt_X,
     ratio_mat = np.zeros((sorted_ratio.shape[0], order+1))
     i=0
     while(i < sorted_ratio.shape[0]):
-        r= sorted_ratio[i] * radius
+        r= sorted_ratio[i] 
         
         for j in range(order +1):
             ratio_mat[i,j] = r**j 

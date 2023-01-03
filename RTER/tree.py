@@ -48,6 +48,8 @@ class BaseRecursiveTree(object):
         self.r_range_low =r_range_low
         self.lamda=lamda
         self.V = V
+        
+        
         self.max_features = max_features
              
     def fit(self, X, Y,X_range=None):
@@ -56,7 +58,12 @@ class BaseRecursiveTree(object):
         max_depth = (1 if self.max_depth is None
                      else self.max_depth)
         
-        order= (10 if self.order is None
+        if self.V == "auto":
+            V =  max(5, int(X.shape[0]* 2**(-max_depth-2)))
+        else:
+            V = self.V
+        
+        order= (0 if self.order is None
                 else self.order)
         if self.min_samples_split < 1:
             #raise ValueError("min_samples_split should be larger than 1, got {}.".format(self.min_samples_split))
@@ -73,7 +80,7 @@ class BaseRecursiveTree(object):
                                        self.truncate_ratio_low,
                                        self.truncate_ratio_up,
                                        self.step,
-                                       self.V,
+                                       V,
                                       self.r_range_up,
                                       self.r_range_low,
                                       self.lamda)
@@ -186,7 +193,7 @@ class RegressionTree(BaseRecursiveTree):
         out = dict()
         for key in ['min_samples_split',"max_depth","order","truncate_ratio_low",
                     "truncate_ratio_up","splitter","r_range_low","r_range_up",
-                    "step","lamda","estimator","V","max_features"]:
+                    "step","lamda","estimator","V","max_features","index_by_r"]:
             value = getattr(self, key, None)
             if deep and hasattr(value, 'get_params'):
                 deep_items = value.get_params().items()

@@ -69,12 +69,13 @@ class RegressionTreeEnsemble(object):
                                                  lamda=self.lamda,
                                                  max_features=self.max_features))
 
-            with Pool(min(100,self.n_estimators)) as p:
+            with Pool(min(50,self.n_estimators)) as p:
                 self.trees = p.map(single_parallel, [(self.trees[i],X,y,i,self.max_samples) for i in range(self.n_estimators)])
                 
                 
         else:
             for i in range(self.n_estimators):
+                np.random.seed(i)
             
                 bootstrap_idx = np.random.choice(X.shape[0], int(np.ceil(X.shape[0] * self.max_samples)))
 
