@@ -9,6 +9,7 @@
 void readFromFile(string filename, vector< vector<double> > &X,
                   vector<double> &Y) {
   ifstream file;
+    cout<<filename<<endl;
   file.open(filename.c_str());
   assert(file.is_open());
   
@@ -18,6 +19,7 @@ void readFromFile(string filename, vector< vector<double> > &X,
   while(!file.eof())
   {
     file >> val;
+    
     if (file.peek() == '\n') { // if line ends, 'val' is the response value
       Y.push_back(val);
       X.push_back(row);
@@ -26,6 +28,7 @@ void readFromFile(string filename, vector< vector<double> > &X,
       row.push_back(val);
     }
   }
+ 
 }
 
 
@@ -42,7 +45,7 @@ int main()
   cout.precision(5);  // # digits after decimal pt
   cout.setf(ios::fixed,ios::floatfield);
     
-    int iter = 0;
+   for (int iter = 0; iter < 5; iter++) {
     string dataset = "abalone";
  
   string filename;
@@ -57,7 +60,7 @@ int main()
   readFromFile(filename, X, Y);
  
     
-prefix = "STdata/val_";
+prefix = "STdata/validate_";
   filename = prefix
            + (char)(iter+'0')
            + '_'
@@ -102,7 +105,12 @@ prefix = "STdata/test_";
     
   double duration = double(time_end - time_start)/CLOCKS_PER_SEC;
     
-    cout<< "time" << duration;
+    cout<< "time:" << duration<<endl;
+       
+   freopen( "../../results/realdata_tree/ST.txt", "w", stderr );
+       cerr << dataset<<","<<mse<<","<<duration<<","<<iter << endl;
+       
+   }
     
   return 0;
 }
