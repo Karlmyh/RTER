@@ -16,12 +16,16 @@ data_file_name_seq <- c(#'housing_scale.csv', 'mpg_scale.csv','space_ga_scale.cs
 
 repeat_times <- 5
 
-# mse计算
+min.max.norm <- function(x){
+  ((x-min(x))/(max(x)-min(x)))
+}  
+
+# mse 
 calculate_error <- function(y,ypredict){
   mse = mean((y-ypredict)**2)
   return(mse)
 }
-# 交叉验证
+# cross validation 
 cv <- function(train_features,train_target,num_tr,tempe,numFold =5){
   error = c(1:numFold)*0
   ind <- sample(1:nrow(train_features),nrow(train_features))
@@ -35,7 +39,7 @@ cv <- function(train_features,train_target,num_tr,tempe,numFold =5){
     test_target_i = as.matrix(train_target[index,])
     fit <- softbart(X = train_features_i, Y = train_target_i, X_test = test_features_i, 
                     hypers = Hypers(train_features_i, train_target_i, num_tree = num_tr, temperature = tempe),
-                    opts = Opts(num_burn = 10, num_save = 10, update_tau = TRUE))
+                    opts = Opts(num_burn = 2500, num_save = 2500, update_tau = TRUE))
     
     error[i] = calculate_error(test_target_i,fit$y_hat_test_mean)
   }
@@ -45,7 +49,8 @@ cv <- function(train_features,train_target,num_tr,tempe,numFold =5){
 line_ind<-0
 num_cases<- length(data_file_name_seq)*repeat_times
 test_errors = data.frame("dataname"=1:num_cases,"Repeat"=1:num_cases,"testerror"=1:num_cases)
-# 对数据集循环
+
+# iter for data set
 for(data_file_name in data_file_name_seq){
   data_name <- data_file_name
   data_name <- strsplit(data_name, ".", fixed= T)[[1]][1]
@@ -56,7 +61,8 @@ for(data_file_name in data_file_name_seq){
     X<-X[,-c(43,44)]
   }
   y <- data[,1]
-
+    
+   X <- apply(X,2,min.max.norm)
   scaled_data <- cbind(y,X)
   
   for(i in 1:repeat_times){
@@ -74,7 +80,7 @@ for(data_file_name in data_file_name_seq){
     test_features = as.matrix(X_test)
     test_target = as.matrix(y_test)
 
-    # 构建超参所有可能的组合
+    # parameter grid 
     gs <- list(num_tree = c(50),temperature = c(1))%>%cross_df()
     num_combination <- nrow(gs)
     
@@ -90,7 +96,7 @@ for(data_file_name in data_file_name_seq){
     }
     best_combination_ind<-which(errors$Error==min(errors$Error),arr.ind=TRUE)
     best_combination<-gs[best_combination_ind,]
-    # 用最好的再拟合
+    # fit with the best
     time_start <- Sys.time()
     fit <- softbart(X = train_features, Y = train_target, X_test = test_features, 
                     hypers = Hypers(train_features, train_target, num_tree = as.numeric(best_combination[1]), temperature = as.numeric(best_combination[2])),

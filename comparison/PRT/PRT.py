@@ -10,7 +10,8 @@ from sklearn.model_selection import train_test_split
 import argparse
 from time import time
 import os
-
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
 
 # Validator probabilistic trees
 
@@ -43,7 +44,7 @@ for data_file_name in data_file_name_seq:
     X = pd.read_csv(data_file_path, header=None, index_col=None)
     X = X.values
     Y = X[:, 0]
-    X = X[:, 1:]
+    X = scaler.fit_transform(X[:, 1:])
 
 
     # Sigma_u validation step, 1e-20 = Std Decision Trees

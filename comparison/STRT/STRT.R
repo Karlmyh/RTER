@@ -5,7 +5,7 @@ library(tidyverse)
 library(caTools)
 library(glue)
 
-library(SoftBart)
+library(BooST)
 library(dplyr)
 
 
@@ -16,13 +16,40 @@ data_file_name_seq <- c(#'housing_scale.csv', 'mpg_scale.csv','space_ga_scale.cs
 
 repeat_times <- 5
 
-# mse计算
+min.max.norm <- function(x){
+  ((x-min(x))/(max(x)-min(x)))
+}  
+
+# evaluate tree
+eval_tree=function(x,tree){
+  terminal=tree[which(tree$terminal=="yes"),]
+  logimat=matrix(NA,nrow(x),nrow(terminal))
+  for(i in 1:nrow(terminal)){
+    node=terminal[i,]
+    logit=1/(1+exp(-node$gamma*(x[,node$variable]-node$c0)))
+    if(node$side==2){logit=1-logit}
+    parent=node$parent
+    while(parent!=0){
+      node=tree[parent,]
+      logitaux=1/(1+exp(-node$gamma*(x[,node$variable]-node$c0)))
+      if(node$side==2){logitaux=1-logitaux}
+      logit=logit*logitaux
+      parent=node$parent
+    }
+    logimat[,i]=logit
+  }
+
+  fitted=logimat%*%terminal$b
+  return(fitted)
+}
+
+# mse
 calculate_error <- function(y,ypredict){
   mse = mean((y-ypredict)**2)
   return(mse)
 }
-# 交叉验证
-cv <- function(train_features,train_target,num_tr,tempe,numFold =5){
+# cross validation
+cv <- function(train_features,train_target,p,d_max,numFold =5){
   error = c(1:numFold)*0
   ind <- sample(1:nrow(train_features),nrow(train_features))
   folds <- cut(seq(1,length(ind)),breaks=numFold,labels=FALSE)
@@ -33,11 +60,9 @@ cv <- function(train_features,train_target,num_tr,tempe,numFold =5){
     train_target_i = as.matrix(train_target[-index,])
     test_features_i = as.matrix(train_features[index,])
     test_target_i = as.matrix(train_target[index,])
-    fit <- softbart(X = train_features_i, Y = train_target_i, X_test = test_features_i, 
-                    hypers = Hypers(train_features_i, train_target_i, num_tree = num_tr, temperature = tempe),
-                    opts = Opts(num_burn = 10, num_save = 10, update_tau = TRUE))
+    smooth_tree_obj <- smooth_tree(x = train_features_i, y = train_target_i, p = p, d_max = d_max)
     
-    error[i] = calculate_error(test_target_i,fit$y_hat_test_mean)
+    error[i] = calculate_error(test_target_i,eval_tree( test_features_i,smooth_tree_obj$tree ))
   }
   return(mean(error))
 }
@@ -45,7 +70,8 @@ cv <- function(train_features,train_target,num_tr,tempe,numFold =5){
 line_ind<-0
 num_cases<- length(data_file_name_seq)*repeat_times
 test_errors = data.frame("dataname"=1:num_cases,"Repeat"=1:num_cases,"testerror"=1:num_cases)
-# 对数据集循环
+
+# iter for data set
 for(data_file_name in data_file_name_seq){
   data_name <- data_file_name
   data_name <- strsplit(data_name, ".", fixed= T)[[1]][1]
@@ -56,6 +82,7 @@ for(data_file_name in data_file_name_seq){
     X<-X[,-c(43,44)]
   }
   y <- data[,1]
+  X <- apply(X,2,min.max.norm)
 
   scaled_data <- cbind(y,X)
   
@@ -74,34 +101,32 @@ for(data_file_name in data_file_name_seq){
     test_features = as.matrix(X_test)
     test_target = as.matrix(y_test)
 
-    # 构建超参所有可能的组合
-    gs <- list(num_tree = c(50),temperature = c(1))%>%cross_df()
+    # parameter grid
+    gs <- list(p = c(0.5,1),d_max = c(2,4,6))%>%cross_df()
     num_combination <- nrow(gs)
     
     # Gridsearch
-    errors = data.frame('num_tree'=1:num_combination,'temperature'=1:num_combination,"Error"=1:num_combination)
+    errors = data.frame('p'=1:num_combination,'d_max'=1:num_combination,"Error"=1:num_combination)
     for (j in c(1:num_combination)){
-      temp_ntree = as.numeric(gs[j,1])
-      temp_tempe = as.numeric(gs[j,2])
-      error = cv(train_features,train_target,num_tr=temp_ntree,tempe =temp_tempe, numFold = 5)
+      temp_p = as.numeric(gs[j,1])
+      temp_d_max = as.numeric(gs[j,2])
+      error = cv(train_features,train_target,p=temp_p,d_max =temp_d_max, numFold = 5)
       errors[j,"Error"] = error
-      errors[j,'num_tree'] = temp_ntree
-      errors[j,'temperature'] = temp_tempe
+      errors[j,'p'] = temp_p
+      errors[j,'d_max'] = temp_d_max
     }
     best_combination_ind<-which(errors$Error==min(errors$Error),arr.ind=TRUE)
     best_combination<-gs[best_combination_ind,]
-    # 用最好的再拟合
+    # fit with best params
     time_start <- Sys.time()
-    fit <- softbart(X = train_features, Y = train_target, X_test = test_features, 
-                    hypers = Hypers(train_features, train_target, num_tree = as.numeric(best_combination[1]), temperature = as.numeric(best_combination[2])),
-                    opts = Opts(num_burn = 2500, num_save = 2500, update_tau = TRUE))
+    best_smooth_tree_obj <- smooth_tree(x = train_features, y = train_target, p = as.numeric(best_combination[1]), d = as.numeric(best_combination[2]))
     
-    test_error = calculate_error(test_target,fit$y_hat_test_mean)
+    test_error = calculate_error(test_target,eval_tree( test_features,best_smooth_tree_obj$tree ))
     time_end <- Sys.time()
     
 
     log <- sprintf("%s,%f,%f,%s", data_name, test_error, as.numeric(time_end - time_start) , i)
-    write(log, "../../results/realdata_forest/SBART.csv",append=TRUE)
+    write(log, "../../results/realdata_tree/STRT.csv",append=TRUE)
   }
   
 }
