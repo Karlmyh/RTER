@@ -28,10 +28,59 @@ args = parser.parse_args()
 
 data_file_dir = "../../data/real_data_cleaned/"
 
-data_file_name_seq = ['triazines_scale.csv','abalone.csv','bodyfat_scale.csv',
-                      'housing_scale.csv', 'mpg_scale.csv',
-                      'space_ga_scale.csv','mg_scale.csv','cpusmall_scale.csv',]
+'''
 
+data_file_name_seq = ['housing_scale.csv',
+ 'mpg_scale.csv',
+ 'airfoil.csv',
+ 'space_ga_scale.csv',
+ 'whitewine.csv',
+ 'dakbilgic.csv',
+ 'mg_scale.csv',
+ 'bias.csv',
+ 'cpusmall_scale.csv',                     
+ 'aquatic.csv',
+ 'music.csv',
+ 'redwine.csv',
+ 'ccpp.csv',
+ 'concrete.csv',
+ 'portfolio.csv',
+ 'building.csv',
+ 'yacht.csv',
+ 'abalone.csv',
+ 'facebook.csv',
+ 'algerian.csv',
+ 'fish.csv',
+ 'communities.csv',
+ 'forestfires.csv',
+ 'cbm.csv']
+
+'''
+
+data_file_name_seq = [
+ 'housing_scale.csv',
+ 'mpg_scale.csv',
+ 'airfoil.csv',
+ 'space_ga_scale.csv',
+ 'whitewine.csv',
+ 'dakbilgic.csv',
+ 'mg_scale.csv',
+ 'bias.csv',
+ 'cpusmall_scale.csv',                     
+ 'aquatic.csv',
+ 'music.csv',
+ 'redwine.csv',
+ 'ccpp.csv',
+ 'concrete.csv',
+ 'portfolio.csv',
+ 'building.csv',
+ 'yacht.csv',
+ 'abalone.csv',
+ 'algerian.csv',
+ 'fish.csv',
+ 'communities.csv',
+ 'forestfires.csv',
+ 'cbm.csv']
 
 log_file_dir = "../../results/realdata_tree/"
 
@@ -53,10 +102,10 @@ for data_file_name in data_file_name_seq:
 
 
     # 10 Cross-validation by default, can be changed by the user in the input.
-    for k in range(5):
+    for k in range(20):
 
         # Split the dataset into training (70%) and testing (30%) sets
-        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=args.ts, random_state=k+10)
+        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=args.ts, random_state=k+20)
 
         # Calculate the standard deviation (noise)
         sigma_Xp = np.std(X_train, axis=0)
@@ -138,7 +187,7 @@ for data_file_name in data_file_name_seq:
         print('Best', k, best_sigma, best_min_leaf_percentage, "{:.3f}".format(MSE_test))
         
         
-        log_file_name = "{}.csv".format("PRT_val")
+        log_file_name = "{}.csv".format("PRT")
         log_file_path = os.path.join(log_file_dir, log_file_name)
         with open(log_file_path, "a") as f:
             logs= "{},{},{},{}\n".format(data_name,

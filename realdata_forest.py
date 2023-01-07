@@ -23,9 +23,7 @@ from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 
 data_file_dir = "./data/real_data_cleaned/"
 
-data_file_name_seq = ['housing_scale.csv', 'mpg_scale.csv','space_ga_scale.csv','mg_scale.csv',
-                      'triazines_scale.csv','pyrim_scale.csv',
-                      'abalone.csv','bodyfat_scale.csv']
+data_file_name_seq = ['airfoil.csv','space_ga_scale.csv','whitewine.csv', 'dakbilgic.csv','mg_scale.csv','bias.csv','cpusmall_scale.csv','aquatic.csv','yacht.csv', 'abalone.csv','cbm.csv']
 
 #data_seq = glob.glob("{}/*.csv".format(log_file_dir))
 #data_file_name_seq = [os.path.split(data)[1] for data in data_seq]
@@ -37,7 +35,7 @@ for data_file_name in data_file_name_seq:
     # load dataset
     data_name = os.path.splitext(data_file_name)[0]
     data_file_path = os.path.join(data_file_dir, data_file_name)
-    data = pd.read_csv(data_file_path)
+    data = pd.read_csv(data_file_path,header = None)
     data = np.array(data)
     
     X = data[:,1:]
@@ -47,7 +45,7 @@ for data_file_name in data_file_name_seq:
     X = scaler.fit_transform(X)
     
 
-    repeat_times = 5
+    repeat_times = 10
         
     for i in range(repeat_times):
         
@@ -56,13 +54,13 @@ for data_file_name in data_file_name_seq:
         
         # RTER ensemble
         
-        parameters={"n_estimators":[50], "max_features":[0.5,0.75,1],
+        parameters={"n_estimators":[200], "max_features":[0.5,0.75,1],
                     "max_samples":[0.8,1,1.2],
-       "min_samples_split":[2,5,10], "max_depth":[2,3,4,5,6,7,8,9],
-       "order":[0,1],"splitter":["varreduction"],
+       "min_samples_split":[5], "max_depth":[5,6,7,8,9],
+       "order":[0],"splitter":["varreduction"],
         "estimator":["pointwise_extrapolation_estimator"],
-       "r_range_low":[0],"r_range_up":[0.6,1],
-       "lamda":[0.0001,0.001,0.01,0.1],"V":[2,"auto"]}
+       "r_range_low":[0],"r_range_up":[1],
+       "lamda":[0.0001,0.001,0.01],"V":[2,"auto"]}
         cv_model_ensemble=GridSearchCV(estimator=RegressionTreeEnsemble(),param_grid=parameters, cv=3, n_jobs=50)
         cv_model_ensemble.fit(X_train, y_train)
         time_start=time()
@@ -82,7 +80,7 @@ for data_file_name in data_file_name_seq:
             
             
             
-        parameters = {"n_estimators":[50],"max_depth":[2,4,6]}
+        parameters = {"n_estimators":[200],"max_depth":[2,4,6]}
         
         cv_model_RFR = GridSearchCV(estimator=RandomForestRegressor(),param_grid=parameters, cv=3, n_jobs=-1) 
         cv_model_RFR.fit(X_train, y_train)

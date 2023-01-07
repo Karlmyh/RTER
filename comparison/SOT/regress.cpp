@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdio.h>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -33,11 +34,26 @@ void readFromFile(string filename, vector< vector<double> > &X,
 
 
 int main()
-{
+    {
+    freopen( "../../results/realdata_tree/ST.txt", "w", stderr );
   
+  // Initialize array of pointer
 
-  vector< vector< double> > X, V, U;
-  vector<double> Y, R, T;
+    
+    char* dataset_list[20] = { "housing_scale","mpg_scale","airfoil","space_ga_scale","mg_scale","cpusmall_scale","aquatic","music", "redwine","ccpp","concrete","portfolio","building","yacht", "abalone","algerian","fish","communities","forestfires","cbm" };
+ 
+    string dataset;
+    // Printing Strings stored in 2D array
+    for (int i = 0; i < 24; i++){
+        dataset = dataset_list[i] ;
+    
+    
+
+ 
+        
+        cout<<dataset<<endl;
+
+  
 
   //srand(time(NULL)); // random seed
   srand(123457);
@@ -45,10 +61,16 @@ int main()
   cout.precision(5);  // # digits after decimal pt
   cout.setf(ios::fixed,ios::floatfield);
     
-   for (int iter = 0; iter < 5; iter++) {
-    string dataset = "abalone";
+   for (int iter = 0; iter < 20; iter++) {
+       
+       vector< vector< double> > X, V, U;
+  vector<double> Y, R, T;
+    
  
   string filename;
+       
+       
+       if (iter <10){
     
     string prefix = "STdata/train_";
   filename = prefix
@@ -80,6 +102,46 @@ prefix = "STdata/test_";
            + ".txt";
     
   readFromFile(filename, U, T);
+           
+       }
+       else{
+       
+    string prefix = "STdata/train_";
+  filename = prefix
+           + (char)('1')
+           + (char)(iter-10+'0')
+           + '_'
+           + dataset
+           + ".txt";
+  
+  readFromFile(filename, X, Y);
+ 
+    
+prefix = "STdata/validate_";
+  filename = prefix
+      + (char)('1')
+           + (char)(iter-10+'0')
+           + '_'
+           + dataset
+           + ".txt";
+  
+  
+  readFromFile(filename, V, R);
+  
+  
+    
+prefix = "STdata/test_";
+  filename = prefix
+      + (char)('1')
+           + (char)(iter-10+'0')
+           + '_'
+           + dataset
+           + ".txt";
+    
+  readFromFile(filename, U, T);
+           
+       
+       }
     
 
   clock_t time_start = clock() ;
@@ -107,10 +169,18 @@ prefix = "STdata/test_";
     
     cout<< "time:" << duration<<endl;
        
-   freopen( "../../results/realdata_tree/ST.txt", "w", stderr );
+   
        cerr << dataset<<","<<mse<<","<<duration<<","<<iter << endl;
        
    }
+    }
+    
     
   return 0;
 }
+
+    /*
+    char* dataset_list[24] = { "housing_scale","mpg_scale","airfoil","space_ga_scale","whitewine", "dakbilgic","mg_scale","bias","cpusmall_scale","aquatic","music", "redwine","ccpp","concrete","portfolio","building","yacht", "abalone","facebook","algerian","fish","communities","forestfires","cbm" };
+    char* dataset_list[24] = { "housing_scale","mpg_scale","airfoil","space_ga_scale","mg_scale","cpusmall_scale","aquatic","music", "redwine","ccpp","concrete","portfolio","building","yacht", "abalone","algerian","fish","communities","forestfires","cbm" };
+   
+    */

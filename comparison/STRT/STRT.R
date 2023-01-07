@@ -10,11 +10,12 @@ library(dplyr)
 
 
 data_file_dir <- "../../data/real_data_cleaned/"
-data_file_name_seq <- c(#'housing_scale.csv', 'mpg_scale.csv','space_ga_scale.csv','mg_scale.csv','cpusmall_scale.csv',
-                      'abalone.csv','bodyfat_scale.csv')
+#data_file_name_seq <- c('housing_scale.csv','mpg_scale.csv','airfoil.csv','space_ga_scale.csv','whitewine.csv', 'dakbilgic.csv','mg_scale.csv','bias.csv','cpusmall_scale.csv','aquatic.csv','music.csv', 'redwine.csv','ccpp.csv','concrete.csv','portfolio.csv','building.csv','yacht.csv', 'abalone.csv','facebook.csv','algerian.csv','fish.csv','communities.csv','forestfires.csv','cbm.csv')
+
+data_file_name_seq <- c('housing_scale.csv','mpg_scale.csv','airfoil.csv','space_ga_scale.csv','whitewine.csv', 'dakbilgic.csv','mg_scale.csv','bias.csv','cpusmall_scale.csv','aquatic.csv','music.csv', 'redwine.csv','ccpp.csv','concrete.csv','portfolio.csv','building.csv','yacht.csv', 'abalone.csv','algerian.csv','fish.csv','communities.csv','forestfires.csv','cbm.csv')
 
 
-repeat_times <- 5
+repeat_times <- 20
 
 min.max.norm <- function(x){
   ((x-min(x))/(max(x)-min(x)))
@@ -102,7 +103,7 @@ for(data_file_name in data_file_name_seq){
     test_target = as.matrix(y_test)
 
     # parameter grid
-    gs <- list(p = c(0.5,1),d_max = c(2,4,6))%>%cross_df()
+    gs <- list(p = c(0.5),d_max = c(2,4,6))%>%cross_df()
     num_combination <- nrow(gs)
     
     # Gridsearch

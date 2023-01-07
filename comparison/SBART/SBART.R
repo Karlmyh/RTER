@@ -10,11 +10,10 @@ library(dplyr)
 
 
 data_file_dir <- "../../data/real_data_cleaned/"
-data_file_name_seq <- c(#'housing_scale.csv', 'mpg_scale.csv','space_ga_scale.csv','mg_scale.csv','cpusmall_scale.csv',
-                      'abalone.csv','bodyfat_scale.csv')
+data_file_name_seq <- c('space_ga_scale.csv','whitewine.csv', 'dakbilgic.csv','mg_scale.csv','bias.csv','cpusmall_scale.csv','aquatic.csv','yacht.csv', 'abalone.csv','cbm.csv')
 
 
-repeat_times <- 5
+repeat_times <- 10
 
 min.max.norm <- function(x){
   ((x-min(x))/(max(x)-min(x)))
@@ -26,7 +25,7 @@ calculate_error <- function(y,ypredict){
   return(mse)
 }
 # cross validation 
-cv <- function(train_features,train_target,num_tr,tempe,numFold =5){
+cv <- function(train_features,train_target,num_tr,tempe,numFold =3){
   error = c(1:numFold)*0
   ind <- sample(1:nrow(train_features),nrow(train_features))
   folds <- cut(seq(1,length(ind)),breaks=numFold,labels=FALSE)
@@ -39,7 +38,7 @@ cv <- function(train_features,train_target,num_tr,tempe,numFold =5){
     test_target_i = as.matrix(train_target[index,])
     fit <- softbart(X = train_features_i, Y = train_target_i, X_test = test_features_i, 
                     hypers = Hypers(train_features_i, train_target_i, num_tree = num_tr, temperature = tempe),
-                    opts = Opts(num_burn = 2500, num_save = 2500, update_tau = TRUE))
+                    opts = Opts(num_burn = 500, num_save = 500, update_tau = TRUE))
     
     error[i] = calculate_error(test_target_i,fit$y_hat_test_mean)
   }
@@ -57,9 +56,7 @@ for(data_file_name in data_file_name_seq){
   data_file_path = paste(data_file_dir, data_file_name,sep='')
   data <- read_csv(data_file_path)
   X <- data[,2:ncol(data)]
-  if(data_file_name=="triazines_scale.csv"){
-    X<-X[,-c(43,44)]
-  }
+
   y <- data[,1]
     
    X <- apply(X,2,min.max.norm)
@@ -80,26 +77,10 @@ for(data_file_name in data_file_name_seq){
     test_features = as.matrix(X_test)
     test_target = as.matrix(y_test)
 
-    # parameter grid 
-    gs <- list(num_tree = c(50),temperature = c(1))%>%cross_df()
-    num_combination <- nrow(gs)
-    
-    # Gridsearch
-    errors = data.frame('num_tree'=1:num_combination,'temperature'=1:num_combination,"Error"=1:num_combination)
-    for (j in c(1:num_combination)){
-      temp_ntree = as.numeric(gs[j,1])
-      temp_tempe = as.numeric(gs[j,2])
-      error = cv(train_features,train_target,num_tr=temp_ntree,tempe =temp_tempe, numFold = 5)
-      errors[j,"Error"] = error
-      errors[j,'num_tree'] = temp_ntree
-      errors[j,'temperature'] = temp_tempe
-    }
-    best_combination_ind<-which(errors$Error==min(errors$Error),arr.ind=TRUE)
-    best_combination<-gs[best_combination_ind,]
     # fit with the best
     time_start <- Sys.time()
     fit <- softbart(X = train_features, Y = train_target, X_test = test_features, 
-                    hypers = Hypers(train_features, train_target, num_tree = as.numeric(best_combination[1]), temperature = as.numeric(best_combination[2])),
+                    hypers = Hypers(train_features, train_target, num_tree = 50, temperature = 1),
                     opts = Opts(num_burn = 2500, num_save = 2500, update_tau = TRUE))
     
     test_error = calculate_error(test_target,fit$y_hat_test_mean)
